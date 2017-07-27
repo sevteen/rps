@@ -12,6 +12,7 @@ import org.springframework.context.event.EventListener;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
+import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
@@ -20,6 +21,7 @@ import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -37,6 +39,16 @@ public class GameController {
     @Autowired
     private SimpMessagingTemplate simp;
 
+    @MessageMapping("/create")
+    @SendTo("/topic/games")
+    public Set<String> createGame(String game) {
+        if (games.putIfAbsent(game, new Game(game)) == null) {
+            log.info("Created game {}", game);
+        } else {
+            log.info("Game with name {} already exists", game);
+        }
+        return games.keySet();
+    }
 
     @MessageMapping("/{name}/join")
     public void joinGame(@DestinationVariable String name, String playerId, SimpMessageHeaderAccessor headerAccessor) {

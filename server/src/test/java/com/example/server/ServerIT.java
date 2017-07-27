@@ -1,13 +1,10 @@
 package com.example.server;
 
 import com.example.server.message.PlayerDto;
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.messaging.converter.MappingJackson2MessageConverter;
@@ -17,17 +14,13 @@ import org.springframework.messaging.simp.stomp.StompSession;
 import org.springframework.messaging.simp.stomp.StompSessionHandlerAdapter;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.junit4.SpringRunner;
-import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.socket.client.standard.StandardWebSocketClient;
 import org.springframework.web.socket.messaging.WebSocketStompClient;
 import org.springframework.web.socket.sockjs.client.SockJsClient;
 import org.springframework.web.socket.sockjs.client.WebSocketTransport;
 
 import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
@@ -35,22 +28,14 @@ import java.util.stream.Collectors;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 /**
  * @author Beka Tsotsoria
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @RunWith(SpringRunner.class)
-@AutoConfigureMockMvc
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
-public class AppTest {
-
-    @Autowired
-    private MockMvc mvc;
+public class ServerIT {
 
     @Value("${local.server.port}")
     private int port;
@@ -69,47 +54,38 @@ public class AppTest {
     }
 
     @Test
-    public void indexShouldHaveEmptyListOfGames() throws Exception {
-        mvc.perform(get("/"))
-            .andDo(print())
-            .andExpect(model().attribute("games", Matchers.hasSize(0)));
+    public void creatingNewGameShouldChangeListOfGames() throws Exception {
+        StompSession session = startSession();
+
+        GamesHandler gamesHandler = new GamesHandler();
+        session.subscribe("/topic/games", gamesHandler);
+
+        createGame(session, "theGame");
+        assertThat(gamesHandler.getGames()).isEqualTo(new HashSet<>(Arrays.asList("theGame")));
+
+        createGame(session, "anotherGame");
+        assertThat(gamesHandler.getGames()).isEqualTo(new HashSet<>(Arrays.asList("theGame", "anotherGame")));
     }
 
     @Test
-    public void requestingNonExistingGameShouldResultInNotFoundError() throws Exception {
-        mvc.perform(get("/game/1"))
-            .andDo(print())
-            .andExpect(status().isNotFound());
-    }
+    public void creating2GamesWithSameNameShouldNotChangeListOfGames() throws Exception {
+        StompSession session = startSession();
 
-    @Test
-    public void canCreateNewGame() throws Exception {
-        String location = mvc.perform(post("/game").param("name", "theGame"))
-            .andExpect(status().isFound())
-            .andExpect(redirectedUrlPattern("/game/*"))
-            .andDo(print())
-            .andReturn()
-            .getResponse().getHeader("Location");
+        GamesHandler gamesHandler = new GamesHandler();
+        session.subscribe("/topic/games", gamesHandler);
 
-        mvc.perform(get(location))
-            .andExpect(status().isOk())
-            .andExpect(model().attribute("game", "theGame"));
-    }
+        createGame(session, "theGame");
+        assertThat(gamesHandler.getGames()).isEqualTo(new HashSet<>(Arrays.asList("theGame")));
 
-    @Test
-    public void creating2GamesWithSameNameShouldFailWithBadRequest() throws Exception {
-        mvc.perform(post("/game").param("name", "theGame"))
-            .andExpect(status().isFound());
-
-        mvc.perform(post("/game").content("theGame"))
-            .andExpect(status().isBadRequest());
+        createGame(session, "theGame");
+        assertThat(gamesHandler.getGames()).isEqualTo(new HashSet<>(Arrays.asList("theGame")));
     }
 
     @Test
     public void canJoinTheGame() throws Exception {
-        createGame("theGame");
-
         StompSession session = startSession();
+
+        createGame(session, "theGame");
 
         PlayersHandler playersHandler = new PlayersHandler();
 
@@ -126,9 +102,9 @@ public class AppTest {
 
     @Test
     public void firstPlayerShouldBeNotifiedWhenAnotherPlayerJoinsTheGame() throws Exception {
-        createGame("theGame");
-
         StompSession session1 = startSession();
+        createGame(session1, "theGame");
+
         StompSession session2 = startSession();
 
         PlayersHandler playersHandler = new PlayersHandler();
@@ -154,9 +130,9 @@ public class AppTest {
 
     @Test
     public void playerShouldBeNotifiedWhenAnotherPlayerLeavesTheGame() throws Exception {
-        createGame("theGame");
-
         StompSession session1 = startSession();
+        createGame(session1, "theGame");
+
         StompSession session2 = startSession();
 
         PlayersHandler playersHandler = new PlayersHandler();
@@ -193,9 +169,9 @@ public class AppTest {
 
     @Test
     public void playerShouldLeaveGameAutomaticallyWhenWebSocketIsDisconnected() throws Exception {
-        createGame("theGame");
-
         StompSession session1 = startSession();
+        createGame(session1, "theGame");
+
         StompSession session2 = startSession();
 
         PlayersHandler playersHandler = new PlayersHandler();
@@ -230,9 +206,9 @@ public class AppTest {
 
     @Test
     public void firstPlayerShouldHaveFirstTurnWhenGameIsReady() throws Exception {
-        createGame("theGame");
-
         StompSession session1 = startSession();
+        createGame(session1, "theGame");
+
         StompSession session2 = startSession();
 
         PlayersHandler playersHandler = new PlayersHandler();
@@ -257,14 +233,39 @@ public class AppTest {
             .isFalse();
     }
 
-    private void createGame(String name) throws Exception {
-        mvc.perform(post("/game").param("name", name));
+    private void createGame(StompSession session, String name) throws InterruptedException {
+        session.send("/game/create", name);
+        Thread.sleep(50);
     }
 
     private StompSession startSession() throws InterruptedException, ExecutionException, TimeoutException {
         return stompClient.connect(url,
             new StompSessionHandlerAdapter() {
             }).get(1, SECONDS);
+    }
+
+    private class GamesHandler implements StompFrameHandler {
+
+        private volatile CompletableFuture<Set<String>> future = new CompletableFuture<>();
+
+        @Override
+        public Type getPayloadType(StompHeaders headers) {
+            return Set.class;
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public synchronized void handleFrame(StompHeaders headers, Object payload) {
+            future.complete((Set<String>) payload);
+        }
+
+        public Set<String> getGames() throws InterruptedException, ExecutionException, TimeoutException {
+            Set<String> games = future.get(3, SECONDS);
+            synchronized (this) {
+                future = new CompletableFuture<>();
+            }
+            return games;
+        }
     }
 
     private class PlayersHandler implements StompFrameHandler {
@@ -290,7 +291,7 @@ public class AppTest {
         }
 
         public List<PlayerDto> getPlayers() throws InterruptedException, ExecutionException, TimeoutException {
-            return future.get(30, SECONDS);
+            return future.get(3, SECONDS);
         }
 
         public List<List<PlayerDto>> getAllPlayers() {
