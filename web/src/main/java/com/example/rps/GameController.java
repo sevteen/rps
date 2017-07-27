@@ -90,6 +90,9 @@ public class GameController {
     private void joinGame(Game game, Player player) {
         game.join(player);
         simp.convertAndSend("/topic/game/" + game.getName() + "/players", getPlayersOfGame(game));
+        if (game.isReady()) {
+            simp.convertAndSend("/topic/game/" + game.getName() + "/players/" + game.getPlayerIds().get(0) + "/turn", "");
+        }
     }
 
     private void leaveGame(Game game, String playerId) {

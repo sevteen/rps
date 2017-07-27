@@ -32,7 +32,7 @@ public class Game {
      * @throws IllegalStateException if there are not enough players in this game
      */
     public RoundResult doRound() {
-        if (players.size() < 2) {
+        if (!isReady()) {
             throw new IllegalStateException("At least 2 players are needed");
         }
         Iterator<Player> iterator = players.values().iterator();
@@ -99,5 +99,13 @@ public class Game {
      */
     public List<String> getPlayerIds() {
         return new ArrayList<>(players.keySet());
+    }
+
+    /**
+     * Tests whether or not game is ready, that is by checking
+     * number of players, which should be at least 2
+     */
+    public boolean isReady() {
+        return players.size() > 1;
     }
 }

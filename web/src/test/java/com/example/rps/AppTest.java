@@ -228,6 +228,35 @@ public class AppTest {
         assertThat(player.getId()).isEqualTo("thePlayer1");
     }
 
+    @Test
+    public void firstPlayerShouldHaveFirstTurnWhenGameIsReady() throws Exception {
+        createGame("theGame");
+
+        StompSession session1 = startSession();
+        StompSession session2 = startSession();
+
+        PlayersHandler playersHandler = new PlayersHandler();
+        TurnHandler player1TurnHandler = new TurnHandler();
+        TurnHandler player2TurnHandler = new TurnHandler();
+
+        session1.subscribe("/topic/game/theGame/players", playersHandler);
+        session1.subscribe("/topic/game/theGame/players/thePlayer1/turn", player1TurnHandler);
+        session2.subscribe("/topic/game/theGame/players/thePlayer2/turn", player2TurnHandler);
+
+        session1.send("/game/theGame/join", "thePlayer1");
+        session2.send("/game/theGame/join", "thePlayer2");
+
+        Thread.sleep(100);
+
+        assertThat(player1TurnHandler.received())
+            .withFailMessage("Player1 did not receive it's turn")
+            .isTrue();
+
+        assertThat(player2TurnHandler.received())
+            .withFailMessage("Player2 received it's turn")
+            .isFalse();
+    }
+
     private void createGame(String name) throws Exception {
         mvc.perform(post("/game").param("name", name));
     }
@@ -266,6 +295,25 @@ public class AppTest {
 
         public List<List<PlayerDto>> getAllPlayers() {
             return allPlayers;
+        }
+    }
+
+    private class TurnHandler implements StompFrameHandler {
+
+        private boolean received;
+
+        @Override
+        public Type getPayloadType(StompHeaders headers) {
+            return Object.class;
+        }
+
+        @Override
+        public void handleFrame(StompHeaders headers, Object payload) {
+            received = true;
+        }
+
+        public boolean received() {
+            return received;
         }
     }
 }

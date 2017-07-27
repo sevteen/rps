@@ -66,6 +66,24 @@ public class GameTest {
     }
 
     @Test
+    public void gameShouldBecomeReadyWhen2PlayersAreJoined() throws Exception {
+        assertThat(game.isReady())
+            .isFalse();
+
+        game.join(new FakePlayer(Weapon.PAPER, "id1"));
+        assertThat(game.isReady())
+            .isFalse();
+
+        game.join(new FakePlayer(Weapon.PAPER, "id2"));
+        assertThat(game.isReady())
+            .isTrue();
+
+        game.leave("id1");
+        assertThat(game.isReady())
+            .isFalse();
+    }
+
+    @Test
     public void playerCanLeaveGame() throws Exception {
         game.join(new FakePlayer(Weapon.PAPER, "id"));
         game.leave("id");
