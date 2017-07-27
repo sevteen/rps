@@ -3,6 +3,8 @@ package com.example.rps.core;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Arrays;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -15,7 +17,12 @@ public class GameTest {
 
     @Before
     public void setUp() throws Exception {
-        game = new Game();
+        game = new Game("Test");
+    }
+
+    @Test
+    public void gameShouldHaveName() throws Exception {
+        assertThat(game.getName()).isEqualTo("Test");
     }
 
     @Test
@@ -47,6 +54,23 @@ public class GameTest {
         assertThatThrownBy(() -> game.join(new FakePlayer(Weapon.PAPER, "id")))
             .hasMessageContaining("Id \"id\" is already taken")
             .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    public void shouldGetListOfPlayers() throws Exception {
+        game.join(new FakePlayer(Weapon.PAPER, "id"));
+        assertThat(game.getPlayerIds()).isEqualTo(Arrays.asList("id"));
+
+        game.join(new FakePlayer(Weapon.PAPER, "id2"));
+        assertThat(game.getPlayerIds()).isEqualTo(Arrays.asList("id", "id2"));
+    }
+
+    @Test
+    public void playerCanLeaveGame() throws Exception {
+        game.join(new FakePlayer(Weapon.PAPER, "id"));
+        game.leave("id");
+
+        assertThat(game.getPlayerIds()).isEmpty();
     }
 
     @Test

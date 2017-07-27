@@ -1,8 +1,10 @@
 package com.example.rps.core;
 
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentSkipListMap;
 
 /**
  * Represents the game itself
@@ -11,7 +13,17 @@ import java.util.Map;
  */
 public class Game {
 
-    private final Map<String, Player> players = new HashMap<>();
+    private final Map<String, Player> players = new ConcurrentSkipListMap<>();
+
+    private String name;
+
+    public Game(String name) {
+        this.name = name;
+    }
+
+    public String getName() {
+        return name;
+    }
 
     /**
      * Performs round and returns result
@@ -73,5 +85,19 @@ public class Game {
         if (players.putIfAbsent(player.getId(), player) != null) {
             throw new IllegalArgumentException("Id \"" + player.getId() + "\" is already taken");
         }
+    }
+
+    /**
+     * Leaves player from the game
+     */
+    public void leave(String playerId) {
+        players.remove(playerId);
+    }
+
+    /**
+     * Returns list of {@link Player#getId() IDs} of joined players
+     */
+    public List<String> getPlayerIds() {
+        return new ArrayList<>(players.keySet());
     }
 }

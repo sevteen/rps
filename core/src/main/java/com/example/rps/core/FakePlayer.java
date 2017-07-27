@@ -11,6 +11,7 @@ public class FakePlayer implements Player {
     private String id;
 
     public FakePlayer() {
+        this(Weapon.PAPER, "id");
     }
 
     public FakePlayer(Weapon weapon, String id) {
