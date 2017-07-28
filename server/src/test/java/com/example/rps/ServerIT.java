@@ -2,6 +2,7 @@ package com.example.rps;
 
 
 import com.example.rps.message.PlayerDto;
+import com.example.rps.message.RoundResultDto;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -51,6 +52,19 @@ public class ServerIT {
         stompClient = new WebSocketStompClient(new SockJsClient(
             Arrays.asList(new WebSocketTransport(new StandardWebSocketClient()))));
         stompClient.setMessageConverter(new MappingJackson2MessageConverter());
+    }
+
+    @Test
+    public void shouldReceiveListOfGamesWhenSubscribing() throws Exception {
+        StompSession session1 = startSession();
+        createGame(session1, "theGame");
+
+        StompSession session2 = startSession();
+
+        SetHandler gamesHandler = new SetHandler();
+        session2.subscribe("/game/available", gamesHandler);
+
+        assertThat(gamesHandler.getSet()).isEqualTo(new HashSet<>(Arrays.asList("theGame")));
     }
 
     @Test
@@ -113,6 +127,8 @@ public class ServerIT {
 
         session1.send("/game/theGame/join", "thePlayer1");
         session2.send("/game/theGame/join", "thePlayer2");
+
+        Thread.sleep(50);
 
         List<PlayerDto> players = playersHandler.getPlayers();
         assertThat(players).hasSize(2);
@@ -205,43 +221,38 @@ public class ServerIT {
     }
 
     @Test
-    public void firstPlayerShouldHaveFirstTurnWhenGameIsReady() throws Exception {
-        StompSession session1 = startSession();
-        createGame(session1, "theGame");
-
-        StompSession session2 = startSession();
-
-        PlayersHandler playersHandler = new PlayersHandler();
-        TurnHandler player1TurnHandler = new TurnHandler();
-        TurnHandler player2TurnHandler = new TurnHandler();
-
-        session1.subscribe("/topic/game/theGame/players", playersHandler);
-        session1.subscribe("/topic/game/theGame/players/thePlayer1/turn", player1TurnHandler);
-        session2.subscribe("/topic/game/theGame/players/thePlayer2/turn", player2TurnHandler);
-
-        session1.send("/game/theGame/join", "thePlayer1");
-        session2.send("/game/theGame/join", "thePlayer2");
-
-        Thread.sleep(100);
-
-        assertThat(player1TurnHandler.received())
-            .withFailMessage("Player1 did not receive it's turn")
-            .isTrue();
-
-        assertThat(player2TurnHandler.received())
-            .withFailMessage("Player2 received it's turn")
-            .isFalse();
-    }
-
-    @Test
     public void shouldReceiveListOfAvailableMovesWhenSubscribed() throws Exception {
         StompSession session = startSession();
         createGame(session, "theGame");
 
         SetHandler movesHandler = new SetHandler();
-        session.subscribe("/topic/game/theGame/moves", movesHandler);
+        session.subscribe("/game/theGame/moves", movesHandler);
 
-        assertThat(movesHandler.getSet()).isNotEmpty();
+        assertThat(movesHandler.getSet()).contains("rock", "paper", "scissors");
+    }
+
+    @Test
+    public void canPerformSingleRound() throws Exception {
+        StompSession session1 = startSession();
+        createGame(session1, "theGame");
+
+        StompSession session2 = startSession();
+
+        session1.send("/game/theGame/join", "thePlayer1");
+        session2.send("/game/theGame/join", "thePlayer2");
+
+        Thread.sleep(50);
+
+        RoundHandler roundHandler = new RoundHandler();
+        session1.subscribe("/topic/game/theGame/result", roundHandler);
+
+        session1.send("/game/theGame/move/thePlayer1", "paper");
+
+        session2.send("/game/theGame/move/thePlayer2", "rock");
+
+        RoundResultDto result = roundHandler.getResult();
+        assertThat(result.getWeaponUsed()).isEqualTo("paper");
+        assertThat(result.getWinner()).isEqualTo("thePlayer1");
     }
 
     private void createGame(StompSession session, String name) throws InterruptedException {
@@ -325,7 +336,28 @@ public class ServerIT {
         }
 
         public boolean received() {
-            return received;
+            boolean r = received;
+            received = false;
+            return r;
+        }
+    }
+
+    private class RoundHandler implements StompFrameHandler {
+
+        private CompletableFuture<RoundResultDto> future = new CompletableFuture<>();
+
+        @Override
+        public Type getPayloadType(StompHeaders headers) {
+            return RoundResultDto.class;
+        }
+
+        @Override
+        public void handleFrame(StompHeaders headers, Object payload) {
+            future.complete((RoundResultDto) payload);
+        }
+
+        public RoundResultDto getResult() throws InterruptedException, ExecutionException, TimeoutException {
+            return future.get(3, SECONDS);
         }
     }
 }

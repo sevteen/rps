@@ -1,15 +1,238 @@
-<div xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorator="layout">
-    <div layout:fragment="content" class="container-fluid">
-        <div class="row" th:each="game: ${games}">
-            <p th:text="${game.name}"></p>
-        </div>
-        <div class="row">
-            <div class="col-xs-6">
-                <form th:action="@{/game}" method="post">
-                    <input name="name" type="text" placeholder="type name of game here..."/>
-                    <input type="submit" class="btn btn-info" value="Create game"/>
-                </form>
+<div xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+     layout:decorator="layout">
+    <div layout:fragment="content" class="container" data-bind="visible: loaded" style="display: none">
+
+        <!-- ko if: !isGameActive()-->
+        <div data-bind="foreach: games">
+            <div class="row">
+                <span class="col-xs-4" data-bind="text: name"></span>
+                <input class="col-xs-4" data-bind="textInput: playerId" placeholder="Player Name"/>
+                <div class="col-xs-4">
+                    <button class="btn btn-info" data-bind="enable: hasPlayerIdSet(), click: join">Join</button>
+                </div>
             </div>
         </div>
+        <div class="row">
+            <div class="col-xs-8">
+                <input type="text" placeholder="Game Name" data-bind="textInput: gameName"/>
+                <input type="text" placeholder="Player Name" data-bind="textInput: playerId"/>
+            </div>
+            <div class="col-xs-4">
+                <button class="btn btn-info"
+                        data-bind="enable: hasValidGameName() && hasValidPlayerId(), click: createGame">Create game
+                </button>
+            </div>
+        </div>
+        <!-- /ko -->
+
+        <!-- ko if: isGameActive() -->
+        <div data-bind="with: game">
+            <div data-bind="foreach: players">
+                <p data-bind="text: id"></p>
+            </div>
+            <span data-bind="text: status"></span>
+            <!-- ko if: playerTurn -->
+                <div data-bind="foreach: availableMoves">
+                    <div class="col-xs-3"><button class="btn btn-info" data-bind="text: $data, click: function() { $parent.makeMove($data); }"></button></div>
+                </div>
+            <!-- /ko -->
+
+            <!-- ko if: roundResult -->
+                <div class="row" data-bind="with: roundResult">
+                    <label>Winner: </label><span data-bind="text: winner"></span>
+                    <label>Weapon: </label><span data-bind="text: weaponUsed"></span>
+                    <button class="btn btn-info" data-bind="click: $parent.playAgain">Again</button>
+                </div>
+            <!-- /ko -->
+        </div>
+        <!-- /ko-->
+
     </div>
+
+    <th:block layout:fragment="scripts">
+        <script type="text/javascript">
+
+            function isEmpty(val) {
+                return !val || val.length === 0;
+            }
+
+            function setArray(array, values) {
+                array.removeAll();
+                ko.utils.arrayPushAll(array, values);
+            }
+
+            function BoardVM(client) {
+
+                var vm = this;
+
+                this.game = ko.observable();
+                this.games = ko.observableArray();
+
+                this.gameName = ko.observable();
+                this.playerId = ko.observable();
+
+                this.isGameActive = function () {
+                    return !!vm.game();
+                };
+
+                this.hasValidGameName = function () {
+                    return !isEmpty(vm.gameName());
+                };
+
+                this.hasValidPlayerId = function () {
+                    return !isEmpty(vm.playerId());
+                };
+
+                this.createGame = function () {
+                    var gameName = vm.gameName();
+                    client.create(gameName);
+                    join(gameName, vm.playerId());
+                };
+
+                client.onCurrentGamesChanged(function (games) {
+                    setArray(vm.games, _.map(games, function (g) {
+                        return {
+                            name: g,
+                            playerId: ko.observable(),
+                            join: function () {
+                                join(this.name, this.playerId());
+                            },
+                            hasPlayerIdSet: function () {
+                                return !isEmpty(this.playerId());
+                            }
+                        }
+                    }));
+                });
+
+                function join(gameName, playerId) {
+                    client.join(gameName, playerId, function (result) {
+                        vm.game(new GameVM(result.session, result.players));
+                    });
+                }
+
+                this.loaded = ko.observable(true);
+            }
+
+            function GameVM(gameSession, initialPlayers) {
+
+                var vm = this;
+
+                this.players = ko.observableArray(initialPlayers);
+                this.availableMoves = ko.observableArray();
+                this.playerTurn = ko.observableArray(false);
+                this.status  = ko.observable();
+                this.roundResult = ko.observable();
+
+                this.setPlayers = function (players) {
+                    setArray(vm.players, players);
+                };
+
+                this.makeMove = function(move) {
+                    gameSession.makeMove(move);
+                    makeOpponentsMove();
+                };
+
+                this.playAgain = function () {
+                    makePlayersTurn();
+                    vm.roundResult(null);
+                };
+
+                gameSession.onAvailableMoves(function (moves) {
+                    setArray(vm.availableMoves, moves);
+                    makePlayersTurn();
+                });
+                gameSession.onResult(function (result) {
+                    vm.roundResult(result);
+                    vm.status('Round completed!');
+                });
+                gameSession.onPlayersChanged(vm.setPlayers);
+
+                function makePlayersTurn() {
+                    vm.status('Make a move!');
+                    vm.playerTurn(true);
+                }
+
+                function makeOpponentsMove() {
+                    vm.playerTurn(false);
+                    vm.status('Waiting for opponent\'s move');
+                }
+            }
+
+            var client = new RpsClient();
+            client.connect(function () {
+                ko.applyBindings(new BoardVM(client));
+            });
+
+            function RpsClient() {
+
+                var self = this;
+
+                var socket = new SockJS(window.location.protocol + '//' + window.location.hostname + ':1717/ws');
+                this.stompClient = Stomp.over(socket);
+
+                this.connect = function (cb) {
+                    self.stompClient.connect({}, cb);
+                };
+
+                this.create = function (gameName) {
+                    self.send('/game/create', gameName);
+                };
+
+                this.join = function (gameName, playerId, cb) {
+                    client.subscribe('/topic/game/' + gameName + '/players', function(players) {
+                        cb({
+                            session: new GameSession(gameName, playerId, self),
+                            players: players
+                        });
+                    });
+                    self.send('/game/' + gameName + '/join', playerId);
+                };
+
+                this.onCurrentGamesChanged = function (cb) {
+                    self.subscribe('/game/available', cb);
+                    self.subscribe('/topic/games', cb);
+                };
+
+                this.subscribe = function (source, cb) {
+                    self.stompClient.subscribe(source, function (message) {
+                        var body = message.body;
+                        cb(body ? JSON.parse(body) : null);
+                    })
+                };
+
+                this.send = function (destination, obj) {
+                    self.stompClient.send(destination, {}, obj);
+                };
+            }
+
+            function GameSession(name, playerId, rpsClient) {
+
+                var self = this;
+
+                this.onPlayersChanged = function (cb) {
+                    self.subscribeGameEvent('players', cb);
+                };
+
+                this.onAvailableMoves = function (cb) {
+                    rpsClient.subscribe('/game/' + name + '/moves', cb);
+                };
+
+                this.leave = function (playerId) {
+                    rpsClient.send('/game/' + name + '/leave', playerId);
+                };
+
+                this.makeMove = function (move) {
+                    rpsClient.send('/game/' + name + '/move/' + playerId, move);
+                };
+
+                this.onResult = function (cb) {
+                    self.subscribeGameEvent('result', cb);
+                };
+
+                this.subscribeGameEvent = function (event, cb) {
+                    rpsClient.subscribe('/topic/game/' + name + '/' + event, cb);
+                };
+            }
+        </script>
+    </th:block>
 </div>

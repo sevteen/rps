@@ -1,6 +1,7 @@
 package com.example.rps;
 
 import com.example.rps.message.PlayerDto;
+import com.example.rps.message.RoundResultDto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,6 +12,7 @@ import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.messaging.simp.annotation.SubscribeMapping;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.socket.messaging.SessionDisconnectEvent;
@@ -30,6 +32,7 @@ public class GameController {
     private final Logger log = LoggerFactory.getLogger(GameController.class);
 
     private final Map<String, Game> games = new ConcurrentHashMap<>();
+    private final Map<String, QueuedPlayer> players = new ConcurrentHashMap<>();
     private final Map<String, PlayerDto> sessions = new ConcurrentHashMap<>();
 
     @Autowired
@@ -50,7 +53,7 @@ public class GameController {
     public void joinGame(@DestinationVariable String name, String playerId, SimpMessageHeaderAccessor headerAccessor) {
         sessions.put(headerAccessor.getSessionId(), new PlayerDto(name, playerId));
         Game game = getGame(name);
-        joinGame(game, new FakePlayer(Weapon.PAPER, playerId));
+        joinGame(game, new QueuedPlayer(playerId));
         log.info("Player {} joined game {}", playerId, name);
     }
 
@@ -59,6 +62,24 @@ public class GameController {
         Game game = getGame(name);
         leaveGame(game, playerId);
         log.info("Player {} left game {}", playerId, name);
+    }
+
+    @MessageMapping("/{name}/move/{playerId}")
+    public void move(@DestinationVariable String name, @DestinationVariable String playerId, String move) {
+        players.get(keyFor(name, playerId)).addMove(Weapon.from(move));
+        log.info("Player {} made move {} in game {}", playerId, move, name);
+    }
+
+    @SubscribeMapping("/{name}/moves")
+    public Set<String> getAvailableMoves(@DestinationVariable String name) {
+        return getGame(name).getAvailableWeapons().stream()
+            .map(Weapon::getName)
+            .collect(Collectors.toSet());
+    }
+
+    @SubscribeMapping("/available")
+    public Set<String> getAvailableGames() {
+        return games.keySet();
     }
 
     @EventListener
@@ -73,17 +94,38 @@ public class GameController {
         }
     }
 
-    private void joinGame(Game game, Player player) {
+    private void joinGame(Game game, QueuedPlayer player) {
         game.join(player);
+        players.put(keyFor(game.getName(), player.getId()), player);
         simp.convertAndSend("/topic/game/" + game.getName() + "/players", getPlayersOfGame(game));
         if (game.isReady()) {
-            simp.convertAndSend("/topic/game/" + game.getName() + "/players/" + game.getPlayerIds().get(0) + "/turn", "");
+            log.info("Game {} is ready", game.getName());
+            sendTurn(game.getName(), game.getPlayerIds().get(0));
+            game.doRoundsAsync(rr -> {
+                log.info("Round completed {}", rr);
+                RoundResultDto dto;
+                if (!rr.isDraw()) {
+                    dto = new RoundResultDto(rr.getWinner().getId(), rr.getWeaponUsed().getName());
+                } else {
+                    dto = new RoundResultDto("Draw", "N/A");
+                }
+                simp.convertAndSend("/topic/game/" + game.getName() + "/result", dto);
+            });
         }
+    }
+
+    private void sendTurn(String gameName, String playerId) {
+        simp.convertAndSend("/topic/game/" + gameName + "/players/" + playerId + "/turn", "");
     }
 
     private void leaveGame(Game game, String playerId) {
         game.leave(playerId);
+        players.remove(keyFor(game.getName(), playerId));
         simp.convertAndSend("/topic/game/" + game.getName() + "/players", getPlayersOfGame(game));
+    }
+
+    private String keyFor(String gameName, String playerId) {
+        return gameName + "_" + playerId;
     }
 
     private List<PlayerDto> getPlayersOfGame(Game game) {
