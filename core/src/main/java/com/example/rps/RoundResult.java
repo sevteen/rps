@@ -22,4 +22,13 @@ public class RoundResult {
     public Weapon getWeaponUsed() {
         return weaponUsed;
     }
+
+    public boolean isDraw() {
+        return winner == null;
+    }
+
+    @Override
+    public String toString() {
+        return isDraw() ? "Draw" : "Winner: " + winner.getId() + ", weapon used: " + weaponUsed;
+    }
 }

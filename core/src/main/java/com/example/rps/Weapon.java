@@ -25,6 +25,10 @@ public class Weapon {
         return equals(weapon);
     }
 
+    public static Weapon from(String weaponName) {
+        return new Weapon(weaponName.toLowerCase());
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

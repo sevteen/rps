@@ -98,6 +98,16 @@ public class GameTest {
     }
 
     @Test
+    public void player1RockAndPlayer2RockShouldFinishAsDraw() throws Exception {
+        FakePlayer rocky = FakePlayer.using("rocky", Weapon.ROCK);
+        FakePlayer edward = FakePlayer.using("edward", Weapon.ROCK);
+        game.join(rocky);
+        game.join(edward);
+
+        assertThat(game.doRound().isDraw()).isTrue();
+    }
+
+    @Test
     public void player1RockShouldWinOverPlayer2Scissors() throws Exception {
         FakePlayer rocky = FakePlayer.using("rocky", Weapon.ROCK);
         FakePlayer edward = FakePlayer.using("edward", Weapon.SCISSORS);
@@ -134,6 +144,16 @@ public class GameTest {
     }
 
     @Test
+    public void player1ScissorsAndPlayer2ScissorsShouldFinishAsDraw() throws Exception {
+        FakePlayer rocky = FakePlayer.using("rocky", Weapon.SCISSORS);
+        FakePlayer edward = FakePlayer.using("edward", Weapon.SCISSORS);
+        game.join(rocky);
+        game.join(edward);
+
+        assertThat(game.doRound().isDraw()).isTrue();
+    }
+
+    @Test
     public void player2RockShouldWinOverPlayer1Scissors() throws Exception {
         FakePlayer edward = FakePlayer.using("edward", Weapon.SCISSORS);
         FakePlayer rocky = FakePlayer.using("rocky", Weapon.ROCK);
@@ -167,6 +187,16 @@ public class GameTest {
         RoundResult result = doRound();
 
         assertRoundResult(result, edward, Weapon.SCISSORS);
+    }
+
+    @Test
+    public void player1PaperAndPlayer2PaperShouldFinishAsDraw() throws Exception {
+        FakePlayer rocky = FakePlayer.using("rocky", Weapon.PAPER);
+        FakePlayer edward = FakePlayer.using("edward", Weapon.PAPER);
+        game.join(rocky);
+        game.join(edward);
+
+        assertThat(game.doRound().isDraw()).isTrue();
     }
 
     @Test
