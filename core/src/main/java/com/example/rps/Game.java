@@ -23,15 +23,39 @@ public class Game {
     }
 
     /**
-     * Performs round and returns result
+     * Performs single round, waits for all players to make a {@link Player#makeMove(GameContext) move} and returns result
      *
      * @return result of round
-     * @throws IllegalStateException if there are not enough players in this game
+     * @throws IllegalStateException if game is not {@link #isReady() ready}
      */
     public RoundResult doRound() {
+        ensureReady();
+        return doRoundInternal();
+    }
+
+    /**
+     * Performs rounds asynchronously indefinitely
+     *
+     * @param listener round listener which will receive results of rounds
+     * @throws IllegalStateException if game is not {@link #isReady() ready}
+     */
+    public void doRoundsAsync(RoundResultListener listener) {
+        ensureReady();
+        new Thread(() -> {
+            while (true) {
+                RoundResult result = doRoundInternal();
+                listener.onResult(result);
+            }
+        }).start();
+    }
+
+    private void ensureReady() {
         if (!isReady()) {
             throw new IllegalStateException("At least 2 players are needed");
         }
+    }
+
+    private RoundResult doRoundInternal() {
         Iterator<Player> iterator = players.values().iterator();
         Player player1 = iterator.next();
         Player player2 = iterator.next();

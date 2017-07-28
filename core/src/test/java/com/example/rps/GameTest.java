@@ -3,11 +3,16 @@ package com.example.rps;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
 
 /**
  * @author Beka Tsotsoria
@@ -94,8 +99,8 @@ public class GameTest {
 
     @Test
     public void player1RockShouldWinOverPlayer2Scissors() throws Exception {
-        FakePlayer rocky = FakePlayer.using(Weapon.ROCK);
-        FakePlayer edward = FakePlayer.using(Weapon.SCISSORS);
+        FakePlayer rocky = FakePlayer.using("rocky", Weapon.ROCK);
+        FakePlayer edward = FakePlayer.using("edward", Weapon.SCISSORS);
         game.join(rocky);
         game.join(edward);
 
@@ -106,8 +111,8 @@ public class GameTest {
 
     @Test
     public void player1PaperShouldWinOverPlayer2Rock() throws Exception {
-        FakePlayer paper = FakePlayer.using(Weapon.PAPER);
-        FakePlayer rocky = FakePlayer.using(Weapon.ROCK);
+        FakePlayer paper = FakePlayer.using("paper", Weapon.PAPER);
+        FakePlayer rocky = FakePlayer.using("rocky", Weapon.ROCK);
         game.join(paper);
         game.join(rocky);
 
@@ -118,8 +123,8 @@ public class GameTest {
 
     @Test
     public void player1ScissorsShouldWinOverPlayer2Paper() throws Exception {
-        FakePlayer edward = FakePlayer.using(Weapon.SCISSORS);
-        FakePlayer paper = FakePlayer.using(Weapon.PAPER);
+        FakePlayer edward = FakePlayer.using("edward", Weapon.SCISSORS);
+        FakePlayer paper = FakePlayer.using("paper", Weapon.PAPER);
         game.join(edward);
         game.join(paper);
 
@@ -130,8 +135,8 @@ public class GameTest {
 
     @Test
     public void player2RockShouldWinOverPlayer1Scissors() throws Exception {
-        FakePlayer edward = FakePlayer.using(Weapon.SCISSORS);
-        FakePlayer rocky = FakePlayer.using(Weapon.ROCK);
+        FakePlayer edward = FakePlayer.using("edward", Weapon.SCISSORS);
+        FakePlayer rocky = FakePlayer.using("rocky", Weapon.ROCK);
         game.join(edward);
         game.join(rocky);
 
@@ -142,8 +147,8 @@ public class GameTest {
 
     @Test
     public void player2PaperShouldWinOverPlayer1Rock() throws Exception {
-        FakePlayer rocky = FakePlayer.using(Weapon.ROCK);
-        FakePlayer paper = FakePlayer.using(Weapon.PAPER);
+        FakePlayer rocky = FakePlayer.using("rocky", Weapon.ROCK);
+        FakePlayer paper = FakePlayer.using("paper", Weapon.PAPER);
         game.join(rocky);
         game.join(paper);
 
@@ -154,8 +159,8 @@ public class GameTest {
 
     @Test
     public void player2ScissorsShouldWinOverPlayer1Paper() throws Exception {
-        FakePlayer paper = FakePlayer.using(Weapon.PAPER);
-        FakePlayer edward = FakePlayer.using(Weapon.SCISSORS);
+        FakePlayer paper = FakePlayer.using("paper", Weapon.PAPER);
+        FakePlayer edward = FakePlayer.using("edward", Weapon.SCISSORS);
         game.join(paper);
         game.join(edward);
 
@@ -167,6 +172,25 @@ public class GameTest {
     @Test
     public void rockPaperAndScissorsShouldBeAsAvailableWeapons() throws Exception {
         assertThat(game.getAvailableWeapons()).isEqualTo(new HashSet<>(Arrays.asList(Weapon.ROCK, Weapon.PAPER, Weapon.SCISSORS)));
+    }
+
+    @Test(timeout = 1000)
+    public void doRoundsAsyncAndThenStop() throws Exception {
+        FakePlayer john = FakePlayer.inTurn("john", Weapon.PAPER, Weapon.ROCK, Weapon.SCISSORS);
+        FakePlayer edward = FakePlayer.inTurn("edward", Weapon.SCISSORS, Weapon.SCISSORS, Weapon.ROCK);
+        game.join(john);
+        game.join(edward);
+
+        List<RoundResult> rounds = new ArrayList<>();
+        RoundResultListener l = mock(RoundResultListener.class);
+        doAnswer(invocation -> rounds.add((RoundResult) invocation.getArguments()[0])).when(l).onResult(any());
+
+        game.doRoundsAsync(l);
+
+        while (rounds.size() < 3) ;
+        assertRoundResult(rounds.get(0), edward, Weapon.SCISSORS);
+        assertRoundResult(rounds.get(1), john, Weapon.ROCK);
+        assertRoundResult(rounds.get(2), edward, Weapon.ROCK);
     }
 
     private RoundResult doRound() {
