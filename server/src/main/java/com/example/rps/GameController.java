@@ -48,22 +48,24 @@ public class GameController {
     @MessageMapping("/{name}/join")
     public void joinGame(@DestinationVariable String name, String playerId, SimpMessageHeaderAccessor headerAccessor) {
         sessions.put(headerAccessor.getSessionId(), new PlayerOfGame(name, playerId));
-        Game game = getGame(name);
-        joinGame(game, new QueuedPlayer(playerId));
-        log.info("Player {} joined game {}", playerId, name);
+        joinGame(name, new QueuedPlayer(playerId));
+    }
+
+    @MessageMapping("/{name}/joinbot")
+    public void joinBot(@DestinationVariable String name, String playerId, SimpMessageHeaderAccessor headerAccessor) {
+        sessions.put(headerAccessor.getSessionId(), new PlayerOfGame(name, playerId));
+        joinGame(name, new Bot(playerId));
     }
 
     @MessageMapping("/{name}/leave")
     public void leaveGame(@DestinationVariable String name, String playerId) {
         Game game = getGame(name);
         leaveGame(game, playerId);
-        log.info("Player {} left game {}", playerId, name);
     }
 
     @MessageMapping("/{name}/move/{playerId}")
     public void move(@DestinationVariable String name, @DestinationVariable String playerId, String move) {
         players.get(keyFor(name, playerId)).addMove(Weapon.from(move));
-        log.info("Player {} made move {} in game {}", playerId, move, name);
     }
 
     @SubscribeMapping("/{name}/moves")
@@ -90,17 +92,19 @@ public class GameController {
         }
     }
 
-    private void joinGame(Game game, QueuedPlayer player) {
+    private void joinGame(String name, Player player) {
+        Game game = getGame(name);
         game.join(player);
-        players.put(keyFor(game.getName(), player.getId()), player);
         simp.convertAndSend("/topic/game/" + game.getName() + "/players", getPlayersOfGame(game));
         if (game.isReady()) {
             log.info("Game {} is ready", game.getName());
-            game.doRoundsAsync(rr -> {
-                log.info("Round completed {}", rr);
-                simp.convertAndSend("/topic/game/" + game.getName() + "/result", rr);
-            });
+            game.doRoundsAsync(rr -> simp.convertAndSend("/topic/game/" + game.getName() + "/result", rr));
         }
+    }
+
+    private void joinGame(String name, QueuedPlayer player) {
+        players.put(keyFor(name, player.getId()), player);
+        joinGame(name, (Player) player);
     }
 
     private void leaveGame(Game game, String playerId) {

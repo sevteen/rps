@@ -1,5 +1,8 @@
 package com.example.rps;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -11,6 +14,8 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author Beka Tsotsoria
  */
 public class Game {
+
+    private final Logger log = LoggerFactory.getLogger(Game.class);
 
     private final Map<String, Player> players = new ConcurrentSkipListMap<>();
     private final Map<String, AtomicInteger> playerWinCounter = new ConcurrentHashMap<>();
@@ -83,6 +88,8 @@ public class Game {
         GameContext context = new GameContext(new ArrayList<>(getAvailableWeapons()));
         Weapon weapon1 = player1.makeMove(context);
         Weapon weapon2 = player2.makeMove(context);
+        log.info("Player {} made move {}", player1.getId(), weapon1);
+        log.info("Player {} made move {}", player2.getId(), weapon2);
         boolean draw = true;
         Player winner = null;
         Player looser = null;
@@ -112,9 +119,11 @@ public class Game {
                 new PlayerResult(player2.getId(), weapon2.getName(), false, getPlayerWinCounter(player2.getId()).get())
             ), roundCounter);
         }
-        return new RoundResult(Arrays.asList(
+        RoundResult rr = new RoundResult(Arrays.asList(
             new PlayerResult(winner.getId(), winnerWeaponUsed.getName(), true, getPlayerWinCounter(winner.getId()).incrementAndGet()),
             new PlayerResult(looser.getId(), looserWeaponUsed.getName(), false, getPlayerWinCounter(looser.getId()).get())), roundCounter);
+        log.info("Round completed {}", rr);
+        return rr;
     }
 
     private AtomicInteger getPlayerWinCounter(String playerId) {
@@ -143,6 +152,7 @@ public class Game {
         if (players.putIfAbsent(player.getId(), player) != null) {
             throw new IllegalArgumentException("Id \"" + player.getId() + "\" is already taken");
         }
+        log.info("Player {} joined game {}", player.getId(), name);
     }
 
     /**
@@ -150,6 +160,7 @@ public class Game {
      */
     public void leave(String playerId) {
         players.remove(playerId);
+        log.info("Player {} left game {}", playerId, name);
     }
 
     /**

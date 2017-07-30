@@ -90,6 +90,28 @@ public class RpsClientIT {
         assertThat(players).contains("player", "player2");
     }
 
+    @Test
+    @SuppressWarnings("unchecked")
+    public void shouldReceiveListOfPlayersWhenBotJoins() throws Exception {
+        connect();
+
+        client.newGame("game");
+
+        Thread.sleep(50);
+
+        List<String> players = new ArrayList<>();
+        PlayersChangeListener l = mock(PlayersChangeListener.class);
+        doAnswer(invocation -> players.addAll((List<String>) invocation.getArguments()[0])).when(l).onPlayersChange(any());
+
+        client.joinGame("game", "player").onPlayersChange(l);
+        client.joinBot("game");
+
+        Thread.sleep(50);
+
+        assertThat(players).hasSize(2);
+        assertThat(players).contains("player");
+    }
+
     @Test(timeout = 5000)
     public void twoPlayersCanPlay() throws Exception {
         connect();

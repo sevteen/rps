@@ -28,6 +28,14 @@ public interface RpsClient {
     void newGame(String name);
 
     /**
+     * Joins bot into game
+     *
+     * @param gameName unique name of game
+     * @throws GameDoesNotExistException when game with specified name does not exist
+     */
+    void joinBot(String gameName);
+
+    /**
      * Joins player into game
      *
      * @param gameName unique name of game

@@ -118,12 +118,12 @@ public class ServerIT {
 
         ListHandler playersHandler = new ListHandler();
 
-        session1.subscribe("/topic/game/theGame/players", playersHandler);
-
         session1.send("/game/theGame/join", "thePlayer1");
-        session2.send("/game/theGame/join", "thePlayer2");
 
         Thread.sleep(50);
+
+        session1.subscribe("/topic/game/theGame/players", playersHandler);
+        session2.send("/game/theGame/join", "thePlayer2");
 
         List<String> players = playersHandler.getPlayers();
         assertThat(players).hasSize(2);
@@ -212,6 +212,28 @@ public class ServerIT {
         session.subscribe("/game/theGame/moves", movesHandler);
 
         assertThat(movesHandler.getSet()).contains("rock", "paper", "scissors");
+    }
+
+    @Test
+    public void canPerformSingleRoundWithBot() throws Exception {
+        StompSession session1 = startSession();
+        createGame(session1, "theGame");
+
+        StompSession session2 = startSession();
+
+        session1.send("/game/theGame/join", "thePlayer1");
+        session2.send("/game/theGame/joinbot", "theBot");
+
+        Thread.sleep(50);
+
+        RoundHandler roundHandler = new RoundHandler();
+        session1.subscribe("/topic/game/theGame/result", roundHandler);
+
+        session1.send("/game/theGame/move/thePlayer1", "paper");
+
+        RoundResult result = roundHandler.getResult();
+        assertThat(result.getPlayerResults()).hasSize(2);
+        assertThat(result.getWeaponUsed("thePlayer1")).isEqualTo("paper");
     }
 
     @Test

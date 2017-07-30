@@ -109,11 +109,19 @@ public class Cli {
     }
 
     private String createGameFromInput(RpsClient client) {
-        String chosenGame;
-        chosenGame = input("Please enter the name of game: ");
-        client.newGame(chosenGame);
-        log("Created game: " + chosenGame);
-        return chosenGame;
+        String game;
+        game = input("Please enter the name of game: ");
+        client.newGame(game);
+        log("Created game: " + game);
+
+        int choice = inputInteger("Would you like to play with bot or another player?\n" +
+                "1. Bot\n" +
+                "2. Another player\n", 3);
+        if (choice == 1) {
+            client.joinBot(game);
+            log("Bot joined into game " + game);
+        }
+        return game;
     }
 
     private void printGames(List<String> games) {

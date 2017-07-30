@@ -74,6 +74,11 @@ public class WebSocketRpsClient implements RpsClient {
     }
 
     @Override
+    public void joinBot(String gameName) {
+        session.send(String.format("/game/%s/joinbot", gameName), "bot");
+    }
+
+    @Override
     public GameSession joinGame(String gameName, String playerId) {
         // TODO: handle the case when game does not exist
         session.send(String.format("/game/%s/join", gameName), playerId);
