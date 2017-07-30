@@ -2,7 +2,8 @@ Building
 ==========================================================================
 
 To build, test and install whole suite run following command from rps dir:
-mvn clean install
+    
+    mvn clean install
 
 To build runnable server, follow this steps:
 1. cd server
@@ -15,7 +16,8 @@ Running
 ==========================================================================
 To run server, execute following command:
 
-docker run -p 8080:8080 --name rps sevteen/rps:latest
+    docker run -p 8080:8080 --name rps sevteen/rps:latest
 
 To run CLI client:
-java -jar target/cli-0.1.0.jar localhost 8080
+
+    java -jar target/cli-0.1.0.jar localhost 8080
