@@ -1,8 +1,6 @@
 package com.example.rps;
 
 
-import com.example.rps.message.PlayerDto;
-import com.example.rps.message.RoundResultDto;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -26,7 +24,6 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
-import java.util.stream.Collectors;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -101,17 +98,15 @@ public class ServerIT {
 
         createGame(session, "theGame");
 
-        PlayersHandler playersHandler = new PlayersHandler();
+        ListHandler playersHandler = new ListHandler();
 
         session.subscribe("/topic/game/theGame/players", playersHandler);
         session.send("/game/theGame/join", "thePlayer");
 
-        List<PlayerDto> players = playersHandler.getPlayers();
+        List<String> players = playersHandler.getPlayers();
         assertThat(players).hasSize(1);
-        PlayerDto player = players.get(0);
-        assertThat(player).isNotNull();
-        assertThat(player.getGame()).isEqualTo("theGame");
-        assertThat(player.getId()).isEqualTo("thePlayer");
+
+        assertThat(players.get(0)).isEqualTo("thePlayer");
     }
 
     @Test
@@ -121,7 +116,7 @@ public class ServerIT {
 
         StompSession session2 = startSession();
 
-        PlayersHandler playersHandler = new PlayersHandler();
+        ListHandler playersHandler = new ListHandler();
 
         session1.subscribe("/topic/game/theGame/players", playersHandler);
 
@@ -130,18 +125,12 @@ public class ServerIT {
 
         Thread.sleep(50);
 
-        List<PlayerDto> players = playersHandler.getPlayers();
+        List<String> players = playersHandler.getPlayers();
         assertThat(players).hasSize(2);
 
-        PlayerDto player1 = players.get(0);
-        assertThat(player1).isNotNull();
-        assertThat(player1.getGame()).isEqualTo("theGame");
-        assertThat(player1.getId()).isEqualTo("thePlayer1");
+        assertThat(players.get(0)).isEqualTo("thePlayer1");
 
-        PlayerDto player2 = players.get(1);
-        assertThat(player2).isNotNull();
-        assertThat(player2.getGame()).isEqualTo("theGame");
-        assertThat(player2.getId()).isEqualTo("thePlayer2");
+        assertThat(players.get(1)).isEqualTo("thePlayer2");
     }
 
     @Test
@@ -151,7 +140,7 @@ public class ServerIT {
 
         StompSession session2 = startSession();
 
-        PlayersHandler playersHandler = new PlayersHandler();
+        ListHandler playersHandler = new ListHandler();
 
         session1.subscribe("/topic/game/theGame/players", playersHandler);
 
@@ -167,7 +156,7 @@ public class ServerIT {
         // Ensure all the messages are received by handler
         Thread.sleep(100);
 
-        List<List<PlayerDto>> allPlayers = playersHandler.getAllPlayers();
+        List<List<String>> allPlayers = playersHandler.getAll();
 
         // List of players updated 3 times:
         // 1. when thePlayer1 joins
@@ -175,12 +164,9 @@ public class ServerIT {
         // 3. when thePlayer2 leaves
         assertThat(allPlayers).hasSize(3);
 
-        List<PlayerDto> players = allPlayers.get(2);
+        List<String> players = allPlayers.get(2);
 
-        PlayerDto player = players.get(0);
-        assertThat(player).isNotNull();
-        assertThat(player.getGame()).isEqualTo("theGame");
-        assertThat(player.getId()).isEqualTo("thePlayer1");
+        assertThat(players.get(0)).isEqualTo("thePlayer1");
     }
 
     @Test
@@ -190,7 +176,7 @@ public class ServerIT {
 
         StompSession session2 = startSession();
 
-        PlayersHandler playersHandler = new PlayersHandler();
+        ListHandler playersHandler = new ListHandler();
 
         session1.subscribe("/topic/game/theGame/players", playersHandler);
 
@@ -204,7 +190,7 @@ public class ServerIT {
         // Ensure all the messages are received by handler
         Thread.sleep(100);
 
-        List<List<PlayerDto>> allPlayers = playersHandler.getAllPlayers();
+        List<List<String>> allPlayers = playersHandler.getAll();
 
         // List of players updated 3 times:
         // 1. when thePlayer1 joins
@@ -212,12 +198,9 @@ public class ServerIT {
         // 3. when thePlayer2's session closes
         assertThat(allPlayers).hasSize(3);
 
-        List<PlayerDto> players = allPlayers.get(2);
+        List<String> players = allPlayers.get(2);
 
-        PlayerDto player = players.get(0);
-        assertThat(player).isNotNull();
-        assertThat(player.getGame()).isEqualTo("theGame");
-        assertThat(player.getId()).isEqualTo("thePlayer1");
+        assertThat(players.get(0)).isEqualTo("thePlayer1");
     }
 
     @Test
@@ -290,55 +273,30 @@ public class ServerIT {
         }
     }
 
-    private class PlayersHandler implements StompFrameHandler {
+    private class ListHandler implements StompFrameHandler {
 
-        private CompletableFuture<List<PlayerDto>> future = new CompletableFuture<>();
-        private List<List<PlayerDto>> allPlayers = new ArrayList<>();
+        private CompletableFuture<List<String>> future = new CompletableFuture<>();
+        private List<List<String>> all = new ArrayList<>();
 
         @Override
         public Type getPayloadType(StompHeaders headers) {
-            return new ParameterizedTypeReference<List<PlayerDto>>() {
+            return new ParameterizedTypeReference<List<String>>() {
             }.getType();
         }
 
         @Override
         @SuppressWarnings("unchecked")
         public void handleFrame(StompHeaders headers, Object payload) {
-            List<PlayerDto> players = ((List<Map<String, String>>) payload)
-                .stream()
-                .map(hm -> new PlayerDto(hm.get("game"), hm.get("id")))
-                .collect(Collectors.toList());
-            future.complete(players);
-            allPlayers.add(players);
+            future.complete((List<String>) payload);
+            all.add((List<String>) payload);
         }
 
-        public List<PlayerDto> getPlayers() throws InterruptedException, ExecutionException, TimeoutException {
+        public List<String> getPlayers() throws InterruptedException, ExecutionException, TimeoutException {
             return future.get(3, SECONDS);
         }
 
-        public List<List<PlayerDto>> getAllPlayers() {
-            return allPlayers;
-        }
-    }
-
-    private class TurnHandler implements StompFrameHandler {
-
-        private boolean received;
-
-        @Override
-        public Type getPayloadType(StompHeaders headers) {
-            return Object.class;
-        }
-
-        @Override
-        public void handleFrame(StompHeaders headers, Object payload) {
-            received = true;
-        }
-
-        public boolean received() {
-            boolean r = received;
-            received = false;
-            return r;
+        public List<List<String>> getAll() {
+            return all;
         }
     }
 

@@ -1,7 +1,5 @@
 package com.example.rps;
 
-import com.example.rps.message.PlayerDto;
-import com.example.rps.message.RoundResultDto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,7 +31,7 @@ public class GameController {
 
     private final Map<String, Game> games = new ConcurrentHashMap<>();
     private final Map<String, QueuedPlayer> players = new ConcurrentHashMap<>();
-    private final Map<String, PlayerDto> sessions = new ConcurrentHashMap<>();
+    private final Map<String, PlayerOfGame> sessions = new ConcurrentHashMap<>();
 
     @Autowired
     private SimpMessagingTemplate simp;
@@ -51,7 +49,7 @@ public class GameController {
 
     @MessageMapping("/{name}/join")
     public void joinGame(@DestinationVariable String name, String playerId, SimpMessageHeaderAccessor headerAccessor) {
-        sessions.put(headerAccessor.getSessionId(), new PlayerDto(name, playerId));
+        sessions.put(headerAccessor.getSessionId(), new PlayerOfGame(name, playerId));
         Game game = getGame(name);
         joinGame(game, new QueuedPlayer(playerId));
         log.info("Player {} joined game {}", playerId, name);
@@ -84,11 +82,11 @@ public class GameController {
 
     @EventListener
     public void onSessionDisconnect(SessionDisconnectEvent e) {
-        PlayerDto player = sessions.get(e.getSessionId());
+        PlayerOfGame player = sessions.get(e.getSessionId());
         if (player != null) {
             Game game = games.get(player.getGame());
             if (game != null) {
-                leaveGame(game, player.getId());
+                leaveGame(game, player.getPlayer());
                 sessions.remove(e.getSessionId());
             }
         }
@@ -103,13 +101,7 @@ public class GameController {
             sendTurn(game.getName(), game.getPlayerIds().get(0));
             game.doRoundsAsync(rr -> {
                 log.info("Round completed {}", rr);
-                RoundResultDto dto;
-                if (!rr.isDraw()) {
-                    dto = new RoundResultDto(rr.getWinner().getId(), rr.getWeaponUsed().getName());
-                } else {
-                    dto = new RoundResultDto("Draw", "N/A");
-                }
-                simp.convertAndSend("/topic/game/" + game.getName() + "/result", dto);
+                simp.convertAndSend("/topic/game/" + game.getName() + "/result", rr);
             });
         }
     }
@@ -128,9 +120,8 @@ public class GameController {
         return gameName + "_" + playerId;
     }
 
-    private List<PlayerDto> getPlayersOfGame(Game game) {
+    private List<String> getPlayersOfGame(Game game) {
         return game.getPlayerIds().stream()
-            .map(pid -> new PlayerDto(game.getName(), pid))
             .collect(Collectors.toList());
     }
 
@@ -145,5 +136,24 @@ public class GameController {
             throw new IllegalStateException("Game with name " + name + " does not exist");
         }
         return game;
+    }
+
+    static class PlayerOfGame {
+
+        private String game;
+        private String player;
+
+        public PlayerOfGame(String game, String player) {
+            this.game = game;
+            this.player = player;
+        }
+
+        public String getGame() {
+            return game;
+        }
+
+        public String getPlayer() {
+            return player;
+        }
     }
 }
