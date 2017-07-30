@@ -149,8 +149,14 @@ public class Game {
         if (player == null) {
             throw new NullPointerException("player");
         }
-        if (players.putIfAbsent(player.getId(), player) != null) {
-            throw new IllegalArgumentException("Id \"" + player.getId() + "\" is already taken");
+        synchronized (this) {
+            if (players.size() == 2) {
+                log.warn("Ignoring player {}, because there are already 2 players in the game, which is current supported maximum", player.getId());
+                return;
+            }
+            if (players.putIfAbsent(player.getId(), player) != null) {
+                throw new IllegalArgumentException("Id \"" + player.getId() + "\" is already taken");
+            }
         }
         log.info("Player {} joined game {}", player.getId(), name);
     }
@@ -158,7 +164,7 @@ public class Game {
     /**
      * Leaves player from the game
      */
-    public void leave(String playerId) {
+    public synchronized void leave(String playerId) {
         players.remove(playerId);
         log.info("Player {} left game {}", playerId, name);
     }

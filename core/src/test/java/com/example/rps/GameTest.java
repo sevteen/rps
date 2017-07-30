@@ -308,6 +308,20 @@ public class GameTest {
         assertRoundResult(doRound(), john, Weapon.ROCK);
     }
 
+    @Test
+    public void onlyFirst2PlayersShouldBeInTheGameForNow() throws Exception {
+        FakePlayer john = FakePlayer.using("john", Weapon.PAPER);
+        FakePlayer edward = FakePlayer.using("edward", Weapon.ROCK);
+        FakePlayer jack = FakePlayer.using("jack", Weapon.PAPER);
+
+        game.join(john);
+        game.join(edward);
+        game.join(jack);
+
+        assertThat(game.getPlayerIds()).hasSize(2);
+        assertThat(game.getPlayerIds()).contains("john", "edward");
+    }
+
     private RoundResult doRound() {
         RoundResult result = game.doRound();
         assertThat(result).isNotNull();
