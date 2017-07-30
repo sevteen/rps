@@ -14,6 +14,7 @@ public interface Player {
 
     /**
      * Return desired weapon to be used in next round
+     *
      * @param context context of game
      */
     Weapon makeMove(GameContext context);

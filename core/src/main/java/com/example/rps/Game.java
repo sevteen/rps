@@ -55,6 +55,7 @@ public class Game {
      *
      * @return result of round
      * @throws IllegalStateException if game is not {@link #isReady() ready}
+     * @throws MoveAbortedException  when one of the player's move gets aborted in the middle of round
      */
     public RoundResult doRound() {
         ensureReady();
@@ -71,19 +72,33 @@ public class Game {
     public synchronized AsyncPlay doRoundsAsync(RoundResultListener listener) {
         ensureReady();
         if (asyncPlay != null) {
-            log.warn("Game is already running in the background");
+            log.info("Game is already running in the background");
             return asyncPlay;
         }
         AtomicBoolean running = new AtomicBoolean(true);
         new Thread(() -> {
             while (running.get()) {
-                RoundResult result = doRoundInternal();
-                listener.onResult(result);
+                try {
+                    RoundResult result = doRoundInternal();
+                    listener.onResult(result);
+                } catch (MoveAbortedException | NoSuchElementException e) {
+                    log.warn("Seems one of the player left game unexpectedly. Stopping round loop until someone joins again", e);
+                    asyncPlay.stop();
+                }
             }
         }).start();
-        return asyncPlay = () -> {
-            running.set(false);
-            asyncPlay = null;
+        return asyncPlay = new AsyncPlay() {
+
+            @Override
+            public boolean isPlaying() {
+                return running.get();
+            }
+
+            @Override
+            public void stop() {
+                running.set(false);
+                asyncPlay = null;
+            }
         };
     }
 
@@ -93,7 +108,7 @@ public class Game {
         }
     }
 
-    private synchronized RoundResult doRoundInternal() {
+    private RoundResult doRoundInternal() {
         Iterator<Player> iterator = players.values().iterator();
         Player player1 = iterator.next();
         Player player2 = iterator.next();
@@ -103,10 +118,8 @@ public class Game {
         log.info("Player {} made move {}", player1.getId(), weapon1);
         log.info("Player {} made move {}", player2.getId(), weapon2);
         boolean draw = true;
-        Player winner = null;
-        Player looser = null;
-        Weapon winnerWeaponUsed = null;
-        Weapon looserWeaponUsed = null;
+        Player winner = null, looser = null;
+        Weapon winnerWeaponUsed = null, looserWeaponUsed = null;
 
         if (defeats(weapon1, weapon2)) {
             winner = player1;
@@ -161,7 +174,7 @@ public class Game {
         if (player == null) {
             throw new NullPointerException("player");
         }
-        synchronized (this) {
+        synchronized (players) {
             if (players.size() == 2) {
                 log.warn("Ignoring player {}, because there are already 2 players in the game, which is current supported maximum", player.getId());
                 return;
@@ -176,8 +189,14 @@ public class Game {
     /**
      * Leaves player from the game
      */
-    public synchronized void leave(String playerId) {
-        players.remove(playerId);
+    public void leave(String playerId) {
+        synchronized (players) {
+            Player player = players.remove(playerId);
+            if (player instanceof AbortablePlayer) {
+                log.info("Aborting player {}", player.getId());
+                ((AbortablePlayer) player).abort();
+            }
+        }
         log.info("Player {} left game {}", playerId, name);
     }
 

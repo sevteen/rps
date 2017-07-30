@@ -5,6 +5,7 @@ import org.junit.Test;
 import java.util.Arrays;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * @author Beka Tsotsoria
@@ -27,6 +28,25 @@ public class QueuedPlayerTest {
         assertThat(player.makeMove(newContext())).isEqualTo(Weapon.SCISSORS);
         assertThat(player.makeMove(newContext())).isEqualTo(Weapon.ROCK);
         assertThat(player.makeMove(newContext())).isEqualTo(Weapon.PAPER);
+    }
+
+    @Test
+    public void shouldReceiveMoveAbortedExceptionWhenAborted() throws Exception {
+        QueuedPlayer player = new QueuedPlayer("id");
+
+        new Thread(() -> {
+            try {
+                Thread.sleep(300);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+            player.abort();
+        }).start();
+
+        assertThatThrownBy(() -> player.makeMove(newContext()))
+            .hasMessageContaining("id")
+            .isInstanceOf(MoveAbortedException.class);
+
     }
 
     private GameContext newContext() {

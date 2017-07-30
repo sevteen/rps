@@ -11,8 +11,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.*;
 
 /**
  * @author Beka Tsotsoria
@@ -323,7 +322,7 @@ public class GameTest {
     }
 
     @Test
-    public void gameShouldBeInterrupted() throws Exception {
+    public void gameShouldBeInterruptedWhenAsyncPlayIsStopped() throws Exception {
         FakePlayer john = FakePlayer.inTurn("john", Weapon.PAPER, Weapon.ROCK, Weapon.SCISSORS).withDelay(300);
         FakePlayer edward = FakePlayer.inTurn("edward", Weapon.SCISSORS, Weapon.SCISSORS, Weapon.ROCK).withDelay(300);
         game.join(john);
@@ -335,11 +334,53 @@ public class GameTest {
 
         AsyncPlay play = game.doRoundsAsync(l);
 
+        assertThat(play.isPlaying()).isTrue();
         Thread.sleep(800);
         play.stop();
 
         assertThat(rounds).hasSize(1);
         assertRoundResult(rounds.get(0), edward, Weapon.SCISSORS);
+    }
+
+    @Test
+    public void singleRoundShouldFailWithMoveAbortedExceptionWhenPlayerGetsAborted() throws Exception {
+        MoveAbortedException e = new MoveAbortedException("boom");
+
+        Player player = mock(Player.class);
+        when(player.getId()).thenReturn("ID");
+        when(player.makeMove(any())).thenThrow(e);
+
+        FakePlayer edward = FakePlayer.using("edward", Weapon.SCISSORS);
+
+        game.join(player);
+        game.join(edward);
+
+        assertThatThrownBy(() -> game.doRound())
+            .isEqualTo(e);
+    }
+
+    @Test
+    public void asyncRoundShouldStopWhenWhenPlayerGetsAborted() throws Exception {
+        MoveAbortedException e = new MoveAbortedException("boom");
+
+        Player player = mock(Player.class);
+        when(player.getId()).thenReturn("ID");
+        when(player.makeMove(any())).thenThrow(e);
+
+        FakePlayer edward = FakePlayer.using("edward", Weapon.SCISSORS);
+
+        game.join(player);
+        game.join(edward);
+
+        RoundResultListener l = mock(RoundResultListener.class);
+
+        AsyncPlay play = game.doRoundsAsync(l);
+
+        verifyZeroInteractions(l);
+
+        Thread.sleep(50);
+
+        assertThat(play.isPlaying()).isFalse();
     }
 
     private RoundResult doRound() {

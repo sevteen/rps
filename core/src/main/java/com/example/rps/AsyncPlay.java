@@ -8,6 +8,11 @@ package com.example.rps;
 public interface AsyncPlay {
 
     /**
+     * Tests whether or not play is active
+     */
+    boolean isPlaying();
+
+    /**
      * Stops game
      */
     void stop();
