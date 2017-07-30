@@ -178,7 +178,7 @@
 
                 var self = this;
 
-                var socket = new SockJS(window.location.protocol + '//' + window.location.hostname + ':1717/ws');
+                var socket = new SockJS('/ws');
                 this.stompClient = Stomp.over(socket);
 
                 this.connect = function (cb) {
