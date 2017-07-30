@@ -56,11 +56,6 @@ public class PlayerResult {
 
     @Override
     public String toString() {
-        return "PlayerResult{" +
-            "playerId='" + playerId + '\'' +
-            ", weapon=" + move +
-            ", winner=" + winner +
-            ", totalWins=" + totalWins +
-            '}';
+        return playerId + " made move: " + move + ", is winner: " + winner + ", total wins: " + totalWins;
     }
 }

@@ -3,7 +3,6 @@ package com.example.rps;
 import java.io.PrintStream;
 import java.util.List;
 import java.util.Scanner;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 /**
@@ -14,6 +13,8 @@ public class Cli {
     private String[] args;
     private PrintStream out;
     private Scanner in;
+
+    private final RpsClient client = new WebSocketRpsClient();
 
     private boolean running;
 
@@ -41,8 +42,6 @@ public class Cli {
         log("Press any key to start the game...");
         System.in.read();
 
-        RpsClient client = new WebSocketRpsClient();
-
         log("Connecting to server");
         client.connect(host, port);
 
@@ -51,8 +50,7 @@ public class Cli {
 
         String chosenGame;
         if (games.isEmpty()) {
-            String choice = input("There are no available games at the moment, would you like to create it? [y/n]");
-            if ("y".equalsIgnoreCase(choice)) {
+            if (inputBoolean("There are no available games at the moment, would you like to create it? [y/n]")) {
                 chosenGame = createGameFromInput(client);
             } else {
                 log("Good bye then!");
@@ -76,27 +74,17 @@ public class Cli {
 
         String playerId = input("Choose your nick name: ");
 
-        log("Joining game: " + chosenGame + " as: " + playerId);
+        log("Joining game " + chosenGame + " as " + playerId);
         GameSession session = client.joinGame(chosenGame, playerId);
 
         session.onPlayersChange(players -> log("Players in the game " + chosenGame + " now are: " + asPrintableList(players)));
         session.onRoundResult(rr -> {
-            List<String> moves = rr.getPlayerResults().stream()
-                .map(PlayerResult::getMove)
-                .collect(Collectors.toList());
-
-            if (rr.isDraw()) {
-                log("Round " + rr.getRoundNumber() + " completed draw");
-            }
-            log("Round " + rr.getRoundNumber() + " completed, results are as follows: " +
-                "Winner(s): " + asPrintableList(rr.getWinnerIds()) + "\n" +
-                "Player moves: " + asPrintableList(moves));
-
-            if ("y".equalsIgnoreCase(input("Again?"))) {
+            log(rr.toString());
+            if (inputBoolean("Again? [y/n]")) {
                 makeMove(session);
             } else {
                 log("Bye bye");
-                System.exit(0);
+                exit();
             }
         });
 
@@ -160,10 +148,18 @@ public class Cli {
         log(prompt);
         String value = readLine();
         if ("exit".equalsIgnoreCase(value.trim())) {
-            System.exit(0);
+            exit();
             return null;
         }
         return value.trim();
+    }
+
+    private boolean inputBoolean(String prompt) {
+        String value;
+        do {
+            value = input(prompt);
+        } while (!"y".equalsIgnoreCase(value) && !"n".equalsIgnoreCase(value));
+        return "y".equalsIgnoreCase(value);
     }
 
     private int inputInteger(String prompt, int maxValue) {
@@ -175,6 +171,11 @@ public class Cli {
             }
         } while (integerInput == null || integerInput >= maxValue);
         return integerInput;
+    }
+
+    private void exit() {
+        client.disconnect();
+        System.exit(0);
     }
 
     private String readLine() {

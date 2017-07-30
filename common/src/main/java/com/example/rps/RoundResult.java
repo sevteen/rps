@@ -70,6 +70,6 @@ public class RoundResult {
 
     @Override
     public String toString() {
-        return isDraw() ? "Draw" : playerResults.toString();
+        return "Round " + roundNumber + " " + (isDraw() ? "Draw" : playerResults.toString());
     }
 }
