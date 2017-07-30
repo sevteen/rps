@@ -2,6 +2,8 @@ package com.example.rps;
 
 import org.junit.Test;
 
+import java.util.Arrays;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -22,8 +24,12 @@ public class QueuedPlayerTest {
         player.addMove(Weapon.ROCK);
         player.addMove(Weapon.PAPER);
 
-        assertThat(player.makeMove(new GameContext())).isEqualTo(Weapon.SCISSORS);
-        assertThat(player.makeMove(new GameContext())).isEqualTo(Weapon.ROCK);
-        assertThat(player.makeMove(new GameContext())).isEqualTo(Weapon.PAPER);
+        assertThat(player.makeMove(newContext())).isEqualTo(Weapon.SCISSORS);
+        assertThat(player.makeMove(newContext())).isEqualTo(Weapon.ROCK);
+        assertThat(player.makeMove(newContext())).isEqualTo(Weapon.PAPER);
+    }
+
+    private GameContext newContext() {
+        return new GameContext(Arrays.asList(Weapon.PAPER, Weapon.ROCK, Weapon.SCISSORS));
     }
 }

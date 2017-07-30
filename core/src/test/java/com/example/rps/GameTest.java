@@ -267,6 +267,19 @@ public class GameTest {
         assertThat(rr3.resultFor("edward").getTotalWins()).isEqualTo(2);
     }
 
+    @Test
+    public void canPlayWithBot() throws Exception {
+        FakePlayer john = FakePlayer.inTurn("john", Weapon.PAPER, Weapon.ROCK, Weapon.SCISSORS);
+        Bot bot = new Bot();
+        game.join(john);
+        game.join(bot);
+
+        RoundResult result = game.doRound();
+
+        assertThat(result.getPlayerResults()).hasSize(2);
+
+    }
+
     private RoundResult doRound() {
         RoundResult result = game.doRound();
         assertThat(result).isNotNull();

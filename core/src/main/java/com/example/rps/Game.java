@@ -63,8 +63,9 @@ public class Game {
         Iterator<Player> iterator = players.values().iterator();
         Player player1 = iterator.next();
         Player player2 = iterator.next();
-        Weapon weapon1 = player1.makeMove(null);
-        Weapon weapon2 = player2.makeMove(null);
+        GameContext context = new GameContext(new ArrayList<>(getAvailableWeapons()));
+        Weapon weapon1 = player1.makeMove(context);
+        Weapon weapon2 = player2.makeMove(context);
         boolean draw = true;
         Player winner = null;
         Player looser = null;
