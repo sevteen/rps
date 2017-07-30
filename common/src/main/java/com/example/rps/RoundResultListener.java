@@ -6,8 +6,7 @@ package com.example.rps;
 public interface RoundResultListener {
 
     /**
-     * Will be invoked by {@link Game#doRoundsAsync(RoundResultListener)} when
-     * after every round
+     * Will be invoked by result of round is available
      */
     void onResult(RoundResult result);
 }

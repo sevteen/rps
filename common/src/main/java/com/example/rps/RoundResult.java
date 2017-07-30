@@ -6,7 +6,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * Represents result of {@link Game#doRound() round}
+ * Represents result of single game round
  *
  * @author Beka Tsotsoria
  */
@@ -47,9 +47,9 @@ public class RoundResult {
             .collect(Collectors.toList());
     }
 
-    public Weapon getWeaponUsed(String playerId) {
+    public String getWeaponUsed(String playerId) {
         return streamFor(playerId)
-            .map(PlayerResult::getWeapon)
+            .map(PlayerResult::getMove)
             .findFirst()
             .orElse(null);
     }

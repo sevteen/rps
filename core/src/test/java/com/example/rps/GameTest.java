@@ -234,11 +234,11 @@ public class GameTest {
 
         assertThat(rr1.getRoundNumber()).isEqualTo(1);
         assertThat(rr1.isDraw()).isFalse();
-        assertThat(rr1.resultFor("john").getWeapon()).isEqualTo(Weapon.PAPER);
+        assertThat(rr1.resultFor("john").getMove()).isEqualTo(Weapon.PAPER.getName());
         assertThat(rr1.resultFor("john").isWinner()).isFalse();
         assertThat(rr1.resultFor("john").getTotalWins()).isEqualTo(0);
 
-        assertThat(rr1.resultFor("edward").getWeapon()).isEqualTo(Weapon.SCISSORS);
+        assertThat(rr1.resultFor("edward").getMove()).isEqualTo(Weapon.SCISSORS.getName());
         assertThat(rr1.resultFor("edward").isWinner()).isTrue();
         assertThat(rr1.resultFor("edward").getTotalWins()).isEqualTo(1);
 
@@ -246,11 +246,11 @@ public class GameTest {
 
         assertThat(rr2.getRoundNumber()).isEqualTo(2);
         assertThat(rr2.isDraw()).isTrue();
-        assertThat(rr2.resultFor("john").getWeapon()).isEqualTo(Weapon.ROCK);
+        assertThat(rr2.resultFor("john").getMove()).isEqualTo(Weapon.ROCK.getName());
         assertThat(rr2.resultFor("john").isWinner()).isFalse();
         assertThat(rr2.resultFor("john").getTotalWins()).isEqualTo(0);
 
-        assertThat(rr2.resultFor("edward").getWeapon()).isEqualTo(Weapon.ROCK);
+        assertThat(rr2.resultFor("edward").getMove()).isEqualTo(Weapon.ROCK.getName());
         assertThat(rr2.resultFor("edward").isWinner()).isFalse();
         assertThat(rr2.resultFor("edward").getTotalWins()).isEqualTo(1);
 
@@ -258,11 +258,11 @@ public class GameTest {
 
         assertThat(rr3.getRoundNumber()).isEqualTo(3);
         assertThat(rr3.isDraw()).isFalse();
-        assertThat(rr3.resultFor("john").getWeapon()).isEqualTo(Weapon.SCISSORS);
+        assertThat(rr3.resultFor("john").getMove()).isEqualTo(Weapon.SCISSORS.getName());
         assertThat(rr3.resultFor("john").isWinner()).isFalse();
         assertThat(rr3.resultFor("john").getTotalWins()).isEqualTo(0);
 
-        assertThat(rr3.resultFor("edward").getWeapon()).isEqualTo(Weapon.ROCK);
+        assertThat(rr3.resultFor("edward").getMove()).isEqualTo(Weapon.ROCK.getName());
         assertThat(rr3.resultFor("edward").isWinner()).isTrue();
         assertThat(rr3.resultFor("edward").getTotalWins()).isEqualTo(2);
     }
@@ -278,6 +278,6 @@ public class GameTest {
         List<String> winners = result.getWinnerIds();
         assertThat(winners).isNotEmpty();
         assertThat(winners.get(0)).isEqualTo(winner.getId());
-        assertThat(result.getWeaponUsed(winners.get(0))).isEqualTo(weapon);
+        assertThat(result.getWeaponUsed(winners.get(0))).isEqualTo(weapon.getName());
     }
 }

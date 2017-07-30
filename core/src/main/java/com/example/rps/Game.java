@@ -90,13 +90,13 @@ public class Game {
         int roundCounter = this.roundCounter.incrementAndGet();
         if (draw) {
             return new RoundResult(Arrays.asList(
-                new PlayerResult(player1.getId(), weapon1, false, getPlayerWinCounter(player1.getId()).get()),
-                new PlayerResult(player2.getId(), weapon2, false, getPlayerWinCounter(player2.getId()).get())
+                new PlayerResult(player1.getId(), weapon1.getName(), false, getPlayerWinCounter(player1.getId()).get()),
+                new PlayerResult(player2.getId(), weapon2.getName(), false, getPlayerWinCounter(player2.getId()).get())
             ), roundCounter);
         }
         return new RoundResult(Arrays.asList(
-            new PlayerResult(winner.getId(), winnerWeaponUsed, true, getPlayerWinCounter(winner.getId()).incrementAndGet()),
-            new PlayerResult(looser.getId(), looserWeaponUsed, false, getPlayerWinCounter(looser.getId()).get())), roundCounter);
+            new PlayerResult(winner.getId(), winnerWeaponUsed.getName(), true, getPlayerWinCounter(winner.getId()).incrementAndGet()),
+            new PlayerResult(looser.getId(), looserWeaponUsed.getName(), false, getPlayerWinCounter(looser.getId()).get())), roundCounter);
     }
 
     private AtomicInteger getPlayerWinCounter(String playerId) {

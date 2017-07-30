@@ -8,13 +8,13 @@ package com.example.rps;
 public class PlayerResult {
 
     private String playerId;
-    private Weapon weapon;
+    private String move;
     private boolean winner;
     private int totalWins;
 
-    public PlayerResult(String playerId, Weapon weapon, boolean winner, int totalWins) {
+    public PlayerResult(String playerId, String move, boolean winner, int totalWins) {
         this.playerId = playerId;
-        this.weapon = weapon;
+        this.move = move;
         this.winner = winner;
         this.totalWins = totalWins;
     }
@@ -27,10 +27,10 @@ public class PlayerResult {
     }
 
     /**
-     * Returns weapon used by the player in this round
+     * Returns move made by the player in this round
      */
-    public Weapon getWeapon() {
-        return weapon;
+    public String getMove() {
+        return move;
     }
 
     /**
@@ -51,7 +51,7 @@ public class PlayerResult {
     public String toString() {
         return "PlayerResult{" +
             "playerId='" + playerId + '\'' +
-            ", weapon=" + weapon +
+            ", weapon=" + move +
             ", winner=" + winner +
             ", totalWins=" + totalWins +
             '}';
