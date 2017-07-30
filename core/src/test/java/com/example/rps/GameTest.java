@@ -23,7 +23,7 @@ public class GameTest {
 
     @Before
     public void setUp() throws Exception {
-        game = new Game("Test");
+        game = new Game("Test", GameRules.CLASSIC);
     }
 
     @Test
@@ -277,7 +277,35 @@ public class GameTest {
         RoundResult result = game.doRound();
 
         assertThat(result.getPlayerResults()).hasSize(2);
+    }
 
+    @Test
+    public void canPlayWithLizardSpockExtension() throws Exception {
+        game = new Game("extended", GameRules.LIZARD_SPOCK_EXTENSION);
+
+        FakePlayer john = FakePlayer.inTurn("john",
+            Weapon.PAPER, Weapon.ROCK, Weapon.SCISSORS,
+            Weapon.LIZARD, Weapon.SPOCK, Weapon.LIZARD,
+            Weapon.SCISSORS, Weapon.LIZARD, Weapon.ROCK);
+
+        FakePlayer edward = FakePlayer.inTurn("edward",
+            Weapon.PAPER, Weapon.ROCK, Weapon.SCISSORS,
+            Weapon.LIZARD, Weapon.SPOCK, Weapon.PAPER,
+            Weapon.SPOCK, Weapon.SPOCK, Weapon.LIZARD);
+
+        game.join(john);
+        game.join(edward);
+
+        assertThat(game.doRound().isDraw()).isTrue();
+        assertThat(game.doRound().isDraw()).isTrue();
+        assertThat(game.doRound().isDraw()).isTrue();
+        assertThat(game.doRound().isDraw()).isTrue();
+        assertThat(game.doRound().isDraw()).isTrue();
+
+        assertRoundResult(doRound(), john, Weapon.LIZARD);
+        assertRoundResult(doRound(), edward, Weapon.SPOCK);
+        assertRoundResult(doRound(), john, Weapon.LIZARD);
+        assertRoundResult(doRound(), john, Weapon.ROCK);
     }
 
     private RoundResult doRound() {

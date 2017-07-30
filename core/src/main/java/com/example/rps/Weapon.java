@@ -7,9 +7,11 @@ import java.util.Objects;
  */
 public class Weapon {
 
-    public static final Weapon ROCK = new Weapon("rock");
-    public static final Weapon PAPER = new Weapon("paper");
-    public static final Weapon SCISSORS = new Weapon("scissors");
+    public static final Weapon ROCK = from("rock");
+    public static final Weapon PAPER = from("paper");
+    public static final Weapon SCISSORS = from("scissors");
+    public static final Weapon LIZARD = from("lizard");
+    public static final Weapon SPOCK = from("spock");
 
     private String name;
 

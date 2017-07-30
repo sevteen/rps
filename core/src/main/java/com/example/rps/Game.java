@@ -17,9 +17,26 @@ public class Game {
     private final AtomicInteger roundCounter = new AtomicInteger();
 
     private String name;
+    private GameRules rules;
 
+    /**
+     * Crates game with {@link GameRules#CLASSIC classic} game rules
+     *
+     * @param name name of the game
+     */
     public Game(String name) {
+        this(name, GameRules.CLASSIC);
+    }
+
+    /**
+     * Creates game with specified rules
+     *
+     * @param name  name of the game
+     * @param rules rules of the game
+     */
+    public Game(String name, GameRules rules) {
         this.name = name;
+        this.rules = rules;
     }
 
     public String getName() {
@@ -72,7 +89,7 @@ public class Game {
         Weapon winnerWeaponUsed = null;
         Weapon looserWeaponUsed = null;
 
-        if (beats(weapon1, weapon2)) {
+        if (defeats(weapon1, weapon2)) {
             winner = player1;
             winnerWeaponUsed = weapon1;
             looser = player2;
@@ -80,7 +97,7 @@ public class Game {
             draw = false;
         }
 
-        if (beats(weapon2, weapon1)) {
+        if (defeats(weapon2, weapon1)) {
             winner = player2;
             winnerWeaponUsed = weapon2;
             looser = player1;
@@ -105,29 +122,10 @@ public class Game {
     }
 
     /**
-     * @return true if <code>weapon1</code> beats <code>weapon2</code>, false otherwise
+     * @return true if <code>weapon1</code> defeats <code>weapon2</code>, false otherwise
      */
-    private boolean beats(Weapon weapon1, Weapon weapon2) {
-        if (Weapon.ROCK.is(weapon1)) {
-            if (Weapon.PAPER.is(weapon2)) {
-                return false;
-            } else if (Weapon.SCISSORS.is(weapon2)) {
-                return true;
-            }
-        } else if (Weapon.SCISSORS.is(weapon1)) {
-            if (Weapon.PAPER.is(weapon2)) {
-                return true;
-            } else if (Weapon.ROCK.is(weapon2)) {
-                return false;
-            }
-        } else if (Weapon.PAPER.is(weapon1)) {
-            if (Weapon.ROCK.is(weapon2)) {
-                return true;
-            } else if (Weapon.SCISSORS.is(weapon2)) {
-                return false;
-            }
-        }
-        return false;
+    private boolean defeats(Weapon weapon1, Weapon weapon2) {
+        return rules.defeats(weapon1, weapon2);
     }
 
     /**
