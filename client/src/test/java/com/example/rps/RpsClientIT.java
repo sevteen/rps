@@ -14,6 +14,5 @@ public class RpsClientTest {
         client.connect("localhost", 1010);
         GameSession session = client.newGame("gela");
         session.getAvailableMoves();
-        session.onTurn(() -> "");
     }
 }

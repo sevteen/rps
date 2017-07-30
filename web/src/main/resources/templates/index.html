@@ -28,7 +28,7 @@
         <!-- ko if: isGameActive() -->
         <div data-bind="with: game">
             <div data-bind="foreach: players">
-                <p data-bind="text: id"></p>
+                <p data-bind="text: $data"></p>
             </div>
             <span data-bind="text: status"></span>
             <!-- ko if: playerTurn -->
@@ -38,9 +38,20 @@
             <!-- /ko -->
 
             <!-- ko if: roundResult -->
-                <div class="row" data-bind="with: roundResult">
-                    <label>Winner: </label><span data-bind="text: winner"></span>
-                    <label>Weapon: </label><span data-bind="text: weaponUsed"></span>
+                <div class="container" data-bind="with: roundResult">
+                    <span>Round</span> <span data-bind="text: roundNumber"></span>
+                    <!-- ko if: !draw-->
+                        <!-- ko foreach: playerResults-->
+                        <div class="row">
+                            <label>Player: </label><span data-bind="text: playerId"></span>
+                            <label>Move: </label><span data-bind="text: move"></span>
+                            <label>Is winner: </label><span data-bind="text: winner"></span>
+                        </div>
+                        <!-- /ko -->
+                    <!-- /ko -->
+                    <!-- ko if: draw -->
+                        <span>Draw</span>
+                    <!-- /ko-->
                     <button class="btn btn-info" data-bind="click: $parent.playAgain">Again</button>
                 </div>
             <!-- /ko -->
