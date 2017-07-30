@@ -4,7 +4,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
-import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.SendTo;
@@ -12,7 +11,6 @@ import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.messaging.simp.annotation.SubscribeMapping;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 
 import java.util.List;
@@ -98,16 +96,11 @@ public class GameController {
         simp.convertAndSend("/topic/game/" + game.getName() + "/players", getPlayersOfGame(game));
         if (game.isReady()) {
             log.info("Game {} is ready", game.getName());
-            sendTurn(game.getName(), game.getPlayerIds().get(0));
             game.doRoundsAsync(rr -> {
                 log.info("Round completed {}", rr);
                 simp.convertAndSend("/topic/game/" + game.getName() + "/result", rr);
             });
         }
-    }
-
-    private void sendTurn(String gameName, String playerId) {
-        simp.convertAndSend("/topic/game/" + gameName + "/players/" + playerId + "/turn", "");
     }
 
     private void leaveGame(Game game, String playerId) {
@@ -125,11 +118,6 @@ public class GameController {
             .collect(Collectors.toList());
     }
 
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity handleIllegalArgumentException(IllegalArgumentException e) {
-        return ResponseEntity.badRequest().body(e.getMessage());
-    }
-
     private Game getGame(String name) {
         Game game = games.get(name);
         if (game == null) {
@@ -143,16 +131,16 @@ public class GameController {
         private String game;
         private String player;
 
-        public PlayerOfGame(String game, String player) {
+        PlayerOfGame(String game, String player) {
             this.game = game;
             this.player = player;
         }
 
-        public String getGame() {
+        String getGame() {
             return game;
         }
 
-        public String getPlayer() {
+        String getPlayer() {
             return player;
         }
     }
