@@ -20,4 +20,4 @@ To run server, execute following command:
 
 To run CLI client:
 
-    java -jar target/cli-0.1.0.jar localhost 8080
+    java -jar cli/target/cli-0.1.0.jar localhost 8080
