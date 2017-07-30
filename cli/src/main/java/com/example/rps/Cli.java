@@ -115,8 +115,8 @@ public class Cli {
         log("Created game: " + game);
 
         int choice = inputInteger("Would you like to play with bot or another player?\n" +
-                "1. Bot\n" +
-                "2. Another player\n", 3);
+            "1. Bot\n" +
+            "2. Another player\n", 3);
         if (choice == 1) {
             client.joinBot(game);
             log("Bot joined into game " + game);
@@ -130,8 +130,16 @@ public class Cli {
     }
 
     private void makeMove(GameSession session) {
-        String move = input("Please make a move: ");
-        session.makeMove(move);
+        String move;
+        do {
+            move = input("Please make a move: ");
+            try {
+                session.makeMove(move);
+            } catch (IllegalArgumentException e) {
+                log(e.getMessage());
+                move = null;
+            }
+        } while (move == null);
         log("Waiting for opponent(s)' move");
     }
 
@@ -155,7 +163,7 @@ public class Cli {
             System.exit(0);
             return null;
         }
-        return value;
+        return value.trim();
     }
 
     private int inputInteger(String prompt, int maxValue) {

@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -196,6 +197,18 @@ public class RpsClientIT {
         Thread.sleep(50);
 
         assertThat(players).contains("player");
+    }
+
+    @Test
+    public void makeMoveShouldFailWithIllegalArgumentExceptionWhenMoveIsNotAvailable() throws Exception {
+        connect();
+
+        client.newGame("game");
+        GameSession session = client.joinGame("game", "player");
+
+        assertThatThrownBy(() -> session.makeMove("INVALID-MOVE"))
+            .hasMessageContaining("Move \"INVALID-MOVE\" is not available")
+            .isInstanceOf(IllegalArgumentException.class);
     }
 
     private void connect() {

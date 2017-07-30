@@ -16,17 +16,17 @@ public class WebSocketGameSession implements GameSession {
     private String gameName;
     private String playerId;
     private StompSession session;
-    private WebSocketRpsClient client;
+
+    private List<String> availableMoves;
 
     public WebSocketGameSession(String gameName, String playerId, StompSession session, WebSocketRpsClient client) {
         this.gameName = gameName;
         this.playerId = playerId;
         this.session = session;
-        this.client = client;
+        fetchAvailableMoves(gameName, session, client);
     }
 
-    @Override
-    public List<String> getAvailableMoves() {
+    private void fetchAvailableMoves(String gameName, StompSession session, WebSocketRpsClient client) {
         SettableListenableFuture<List<String>> moves = new SettableListenableFuture<>();
         session.subscribe(String.format("/game/%s/moves", gameName), new StompFrameHandler() {
             @Override
@@ -40,7 +40,12 @@ public class WebSocketGameSession implements GameSession {
                 moves.set((List<String>) payload);
             }
         });
-        return client.waitForResponse(moves, "Failed to retrieve list of available moves");
+        availableMoves = client.waitForResponse(moves, "Failed to retrieve list of available moves");
+    }
+
+    @Override
+    public List<String> getAvailableMoves() {
+        return availableMoves;
     }
 
     @Override
@@ -78,7 +83,9 @@ public class WebSocketGameSession implements GameSession {
 
     @Override
     public void makeMove(String move) {
-        // TODO: handle invalid moves
+        if (!availableMoves.contains(move)) {
+            throw new IllegalArgumentException("Move \"" + move + "\" is not available");
+        }
         session.send(String.format("/game/%s/move/%s", gameName, playerId), move);
     }
 
