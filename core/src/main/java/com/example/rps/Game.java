@@ -1,7 +1,9 @@
 package com.example.rps;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Represents the game itself
@@ -11,6 +13,8 @@ import java.util.concurrent.ConcurrentSkipListMap;
 public class Game {
 
     private final Map<String, Player> players = new ConcurrentSkipListMap<>();
+    private final Map<String, AtomicInteger> playerWinCounter = new ConcurrentHashMap<>();
+    private final AtomicInteger roundCounter = new AtomicInteger();
 
     private String name;
 
@@ -61,34 +65,68 @@ public class Game {
         Player player2 = iterator.next();
         Weapon weapon1 = player1.makeMove(null);
         Weapon weapon2 = player2.makeMove(null);
+        boolean draw = true;
         Player winner = null;
-        Weapon weaponUsed = null;
+        Player looser = null;
+        Weapon winnerWeaponUsed = null;
+        Weapon looserWeaponUsed = null;
+
+        if (beats(weapon1, weapon2)) {
+            winner = player1;
+            winnerWeaponUsed = weapon1;
+            looser = player2;
+            looserWeaponUsed = weapon2;
+            draw = false;
+        }
+
+        if (beats(weapon2, weapon1)) {
+            winner = player2;
+            winnerWeaponUsed = weapon2;
+            looser = player1;
+            looserWeaponUsed = weapon1;
+            draw = false;
+        }
+
+        int roundCounter = this.roundCounter.incrementAndGet();
+        if (draw) {
+            return new RoundResult(Arrays.asList(
+                new PlayerResult(player1.getId(), weapon1, false, getPlayerWinCounter(player1.getId()).get()),
+                new PlayerResult(player2.getId(), weapon2, false, getPlayerWinCounter(player2.getId()).get())
+            ), roundCounter);
+        }
+        return new RoundResult(Arrays.asList(
+            new PlayerResult(winner.getId(), winnerWeaponUsed, true, getPlayerWinCounter(winner.getId()).incrementAndGet()),
+            new PlayerResult(looser.getId(), looserWeaponUsed, false, getPlayerWinCounter(looser.getId()).get())), roundCounter);
+    }
+
+    private AtomicInteger getPlayerWinCounter(String playerId) {
+        return playerWinCounter.computeIfAbsent(playerId, w -> new AtomicInteger());
+    }
+
+    /**
+     * @return true if <code>weapon1</code> beats <code>weapon2</code>, false otherwise
+     */
+    private boolean beats(Weapon weapon1, Weapon weapon2) {
         if (Weapon.ROCK.is(weapon1)) {
             if (Weapon.PAPER.is(weapon2)) {
-                winner = player2;
-                weaponUsed = weapon2;
+                return false;
             } else if (Weapon.SCISSORS.is(weapon2)) {
-                winner = player1;
-                weaponUsed = weapon1;
+                return true;
             }
         } else if (Weapon.SCISSORS.is(weapon1)) {
             if (Weapon.PAPER.is(weapon2)) {
-                winner = player1;
-                weaponUsed = weapon1;
+                return true;
             } else if (Weapon.ROCK.is(weapon2)) {
-                winner = player2;
-                weaponUsed = weapon2;
+                return false;
             }
         } else if (Weapon.PAPER.is(weapon1)) {
             if (Weapon.ROCK.is(weapon2)) {
-                winner = player1;
-                weaponUsed = weapon1;
+                return true;
             } else if (Weapon.SCISSORS.is(weapon2)) {
-                winner = player2;
-                weaponUsed = weapon2;
+                return false;
             }
         }
-        return new RoundResult(winner, weaponUsed);
+        return false;
     }
 
     /**

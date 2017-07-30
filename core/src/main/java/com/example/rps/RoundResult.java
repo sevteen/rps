@@ -1,5 +1,10 @@
 package com.example.rps;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 /**
  * Represents result of {@link Game#doRound() round}
  *
@@ -7,28 +12,58 @@ package com.example.rps;
  */
 public class RoundResult {
 
-    private Player winner;
-    private Weapon weaponUsed;
+    private List<PlayerResult> playerResults = new ArrayList<>();
+    private int roundNumber;
 
-    public RoundResult(Player winner, Weapon weaponUsed) {
-        this.winner = winner;
-        this.weaponUsed = weaponUsed;
+    public RoundResult(List<PlayerResult> playerResults, int roundNumber) {
+        this.playerResults = playerResults;
+        this.roundNumber = roundNumber;
     }
 
-    public Player getWinner() {
-        return winner;
+    /**
+     * Creates new draw result
+     */
+    public static RoundResult draw(int round) {
+        return new RoundResult(new ArrayList<>(), round);
     }
 
-    public Weapon getWeaponUsed() {
-        return weaponUsed;
+    public List<PlayerResult> getPlayerResults() {
+        return playerResults;
+    }
+
+    public PlayerResult resultFor(String playerId) {
+        return streamFor(playerId).findFirst().orElse(null);
+    }
+
+    private Stream<PlayerResult> streamFor(String playerId) {
+        return playerResults.stream()
+            .filter(pr -> pr.getPlayerId().equals(playerId));
+    }
+
+    public List<String> getWinnerIds() {
+        return playerResults.stream()
+            .filter(PlayerResult::isWinner)
+            .map(PlayerResult::getPlayerId)
+            .collect(Collectors.toList());
+    }
+
+    public Weapon getWeaponUsed(String playerId) {
+        return streamFor(playerId)
+            .map(PlayerResult::getWeapon)
+            .findFirst()
+            .orElse(null);
+    }
+
+    public int getRoundNumber() {
+        return roundNumber;
     }
 
     public boolean isDraw() {
-        return winner == null;
+        return playerResults.stream().noneMatch(PlayerResult::isWinner);
     }
 
     @Override
     public String toString() {
-        return isDraw() ? "Draw" : "Winner: " + winner.getId() + ", weapon used: " + weaponUsed;
+        return isDraw() ? "Draw" : playerResults.toString();
     }
 }
