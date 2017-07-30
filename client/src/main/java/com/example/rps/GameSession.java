@@ -3,7 +3,7 @@ package com.example.rps;
 import java.util.List;
 
 /**
- * Represents game session started by {@link RpsClient#newGame(String)} or {@link RpsClient#joinGame(String, String)}
+ * Represents game session started by {@link RpsClient#joinGame(String, String)}
  *
  * @author Beka Tsotsoria
  */
@@ -16,13 +16,26 @@ public interface GameSession {
     List<String> getAvailableMoves();
 
     /**
-     * Registers listener to player's turn. {@link TurnListener#onTurn()}
-     * will be called when it's time for a player to make a move.
+     * Registers listener to list of players in this game
+     *
      */
-    void onTurn(TurnListener listener);
+    GameSession onPlayersChange(PlayersChangeListener listener);
 
     /**
-     * Leaves game. {@link TurnListener#onTurn()} will not be invoked anymore
+     * Registers listener to round's result. {@link RoundResultListener#onResult(RoundResult)}
+     * will be called when round is completed and winner is known
+     */
+    GameSession onRoundResult(RoundResultListener listener);
+
+    /**
+     * Submits move
+     *
+     * @throws IllegalArgumentException if move is not {@link #getAvailableMoves() available}
+     */
+    void makeMove(String move);
+
+    /**
+     * Leaves game. {@link RoundResultListener#onResult(RoundResult)} will not be invoked anymore
      */
     void leave();
 }
