@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -20,6 +21,7 @@ public class Game {
     private final Map<String, Player> players = new ConcurrentSkipListMap<>();
     private final Map<String, AtomicInteger> playerWinCounter = new ConcurrentHashMap<>();
     private final AtomicInteger roundCounter = new AtomicInteger();
+    private AsyncPlay asyncPlay;
 
     private String name;
     private GameRules rules;
@@ -60,19 +62,29 @@ public class Game {
     }
 
     /**
-     * Performs rounds asynchronously indefinitely
+     * Performs rounds asynchronously indefinitely until game is {@link AsyncPlay#stop() stopped}
      *
      * @param listener round listener which will receive results of rounds
+     * @return handle to the game which can be {@link AsyncPlay#stop() stopped} later
      * @throws IllegalStateException if game is not {@link #isReady() ready}
      */
-    public void doRoundsAsync(RoundResultListener listener) {
+    public synchronized AsyncPlay doRoundsAsync(RoundResultListener listener) {
         ensureReady();
+        if (asyncPlay != null) {
+            log.warn("Game is already running in the background");
+            return asyncPlay;
+        }
+        AtomicBoolean running = new AtomicBoolean(true);
         new Thread(() -> {
-            while (true) {
+            while (running.get()) {
                 RoundResult result = doRoundInternal();
                 listener.onResult(result);
             }
         }).start();
+        return asyncPlay = () -> {
+            running.set(false);
+            asyncPlay = null;
+        };
     }
 
     private void ensureReady() {
@@ -81,7 +93,7 @@ public class Game {
         }
     }
 
-    private RoundResult doRoundInternal() {
+    private synchronized RoundResult doRoundInternal() {
         Iterator<Player> iterator = players.values().iterator();
         Player player1 = iterator.next();
         Player player2 = iterator.next();

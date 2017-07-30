@@ -10,6 +10,7 @@ public class FakePlayer implements Player {
 
     private Weapon weapon;
     private String id;
+    private int delay;
 
     private LinkedBlockingQueue<Weapon> weapons = new LinkedBlockingQueue<>();
 
@@ -36,6 +37,14 @@ public class FakePlayer implements Player {
         return new FakePlayer(id, weapons);
     }
 
+    /**
+     * Delay between subsequent moves in milliseconds
+     */
+    public FakePlayer withDelay(int delay) {
+        this.delay = delay;
+        return this;
+    }
+
     @Override
     public String getId() {
         return id;
@@ -44,6 +53,9 @@ public class FakePlayer implements Player {
     @Override
     public Weapon makeMove(GameContext context) {
         try {
+            if (delay != 0) {
+                Thread.sleep(delay);
+            }
             return weapon != null ? weapon : weapons.take();
         } catch (InterruptedException e) {
             throw new RuntimeException(e);

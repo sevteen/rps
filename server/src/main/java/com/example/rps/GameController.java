@@ -13,10 +13,12 @@ import org.springframework.messaging.simp.annotation.SubscribeMapping;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 
+import javax.annotation.PreDestroy;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 
 /**
@@ -30,6 +32,7 @@ public class GameController {
     private final Map<String, Game> games = new ConcurrentHashMap<>();
     private final Map<String, QueuedPlayer> players = new ConcurrentHashMap<>();
     private final Map<String, PlayerOfGame> sessions = new ConcurrentHashMap<>();
+    private final List<AsyncPlay> asyncPlays = new CopyOnWriteArrayList<>();
 
     @Autowired
     private SimpMessagingTemplate simp;
@@ -92,13 +95,19 @@ public class GameController {
         }
     }
 
+    @PreDestroy
+    void destroy() {
+        asyncPlays.forEach(AsyncPlay::stop);
+        asyncPlays.clear();
+    }
+
     private void joinGame(String name, Player player) {
         Game game = getGame(name);
         game.join(player);
         simp.convertAndSend("/topic/game/" + game.getName() + "/players", getPlayersOfGame(game));
         if (game.isReady()) {
             log.info("Game {} is ready", game.getName());
-            game.doRoundsAsync(rr -> simp.convertAndSend("/topic/game/" + game.getName() + "/result", rr));
+            asyncPlays.add(game.doRoundsAsync(rr -> simp.convertAndSend("/topic/game/" + game.getName() + "/result", rr)));
         }
     }
 

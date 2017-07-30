@@ -322,6 +322,26 @@ public class GameTest {
         assertThat(game.getPlayerIds()).contains("john", "edward");
     }
 
+    @Test
+    public void gameShouldBeInterrupted() throws Exception {
+        FakePlayer john = FakePlayer.inTurn("john", Weapon.PAPER, Weapon.ROCK, Weapon.SCISSORS).withDelay(300);
+        FakePlayer edward = FakePlayer.inTurn("edward", Weapon.SCISSORS, Weapon.SCISSORS, Weapon.ROCK).withDelay(300);
+        game.join(john);
+        game.join(edward);
+
+        List<RoundResult> rounds = new ArrayList<>();
+        RoundResultListener l = mock(RoundResultListener.class);
+        doAnswer(invocation -> rounds.add((RoundResult) invocation.getArguments()[0])).when(l).onResult(any());
+
+        AsyncPlay play = game.doRoundsAsync(l);
+
+        Thread.sleep(800);
+        play.stop();
+
+        assertThat(rounds).hasSize(1);
+        assertRoundResult(rounds.get(0), edward, Weapon.SCISSORS);
+    }
+
     private RoundResult doRound() {
         RoundResult result = game.doRound();
         assertThat(result).isNotNull();
