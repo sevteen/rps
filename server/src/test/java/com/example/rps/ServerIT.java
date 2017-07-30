@@ -250,9 +250,9 @@ public class ServerIT {
 
         session2.send("/game/theGame/move/thePlayer2", "rock");
 
-        RoundResultDto result = roundHandler.getResult();
-        assertThat(result.getWeaponUsed()).isEqualTo("paper");
-        assertThat(result.getWinner()).isEqualTo("thePlayer1");
+        RoundResult result = roundHandler.getResult();
+        assertThat(result.getWinnerIds().get(0)).isEqualTo("thePlayer1");
+        assertThat(result.getWeaponUsed("thePlayer1")).isEqualTo("paper");
     }
 
     private void createGame(StompSession session, String name) throws InterruptedException {
@@ -344,19 +344,19 @@ public class ServerIT {
 
     private class RoundHandler implements StompFrameHandler {
 
-        private CompletableFuture<RoundResultDto> future = new CompletableFuture<>();
+        private CompletableFuture<RoundResult> future = new CompletableFuture<>();
 
         @Override
         public Type getPayloadType(StompHeaders headers) {
-            return RoundResultDto.class;
+            return RoundResult.class;
         }
 
         @Override
         public void handleFrame(StompHeaders headers, Object payload) {
-            future.complete((RoundResultDto) payload);
+            future.complete((RoundResult) payload);
         }
 
-        public RoundResultDto getResult() throws InterruptedException, ExecutionException, TimeoutException {
+        public RoundResult getResult() throws InterruptedException, ExecutionException, TimeoutException {
             return future.get(3, SECONDS);
         }
     }

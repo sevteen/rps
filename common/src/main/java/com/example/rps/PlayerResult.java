@@ -1,10 +1,15 @@
 package com.example.rps;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 /**
  * Represents single round result of player
  *
  * @author Beka Tsotsoria
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class PlayerResult {
 
     private String playerId;
@@ -12,7 +17,9 @@ public class PlayerResult {
     private boolean winner;
     private int totalWins;
 
-    public PlayerResult(String playerId, String move, boolean winner, int totalWins) {
+    @JsonCreator
+    public PlayerResult(@JsonProperty("playerId") String playerId, @JsonProperty("move") String move,
+                        @JsonProperty("winner") boolean winner, @JsonProperty("totalWins") int totalWins) {
         this.playerId = playerId;
         this.move = move;
         this.winner = winner;

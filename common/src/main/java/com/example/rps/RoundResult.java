@@ -1,5 +1,9 @@
 package com.example.rps;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -10,12 +14,14 @@ import java.util.stream.Stream;
  *
  * @author Beka Tsotsoria
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class RoundResult {
 
     private List<PlayerResult> playerResults = new ArrayList<>();
     private int roundNumber;
 
-    public RoundResult(List<PlayerResult> playerResults, int roundNumber) {
+    @JsonCreator
+    public RoundResult(@JsonProperty("playerResults") List<PlayerResult> playerResults, @JsonProperty("roundNumber") int roundNumber) {
         this.playerResults = playerResults;
         this.roundNumber = roundNumber;
     }
