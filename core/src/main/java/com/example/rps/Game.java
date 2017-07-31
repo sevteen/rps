@@ -211,7 +211,7 @@ public class Game {
      * Returns set of available weapons in this game
      */
     public Set<Weapon> getAvailableWeapons() {
-        return new HashSet<>(Arrays.asList(Weapon.ROCK, Weapon.PAPER, Weapon.SCISSORS));
+        return new HashSet<>(rules.getAllWeapons());
     }
 
     /**

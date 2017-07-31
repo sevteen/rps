@@ -12,7 +12,7 @@ import java.util.*;
  * </ul>
  *
  * @author Beka Tsotsoria
- * TODO: add more consistency checks
+ *         TODO: add more consistency checks
  */
 public class GameRules {
 
@@ -51,6 +51,10 @@ public class GameRules {
                 throw new InconsistentGameRulesException(weapon.getName() + " is not defeatable");
             }
         });
+    }
+
+    public List<Weapon> getAllWeapons() {
+        return new ArrayList<>(relationships.keySet());
     }
 
     private boolean isDefeatableByAnyone(Weapon weapon) {

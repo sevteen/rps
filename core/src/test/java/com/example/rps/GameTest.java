@@ -383,6 +383,13 @@ public class GameTest {
         assertThat(play.isPlaying()).isFalse();
     }
 
+    @Test
+    public void shouldRetrieveAvailableWeaponsBasedOnGameRules() throws Exception {
+        assertThat(new Game("game", GameRules.LIZARD_SPOCK_EXTENSION).getAvailableWeapons())
+            .contains(Weapon.ROCK, Weapon.PAPER, Weapon.SCISSORS, Weapon.LIZARD, Weapon.SPOCK);
+
+    }
+
     private RoundResult doRound() {
         RoundResult result = game.doRound();
         assertThat(result).isNotNull();
