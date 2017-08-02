@@ -1,7 +1,7 @@
 package com.example.rps;
 
 /**
- * Bot player returning making random moves
+ * Bot player making random moves
  *
  * @author Beka Tsotsoria
  */

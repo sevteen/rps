@@ -17,7 +17,6 @@ public interface GameSession {
 
     /**
      * Registers listener to list of players in this game
-     *
      */
     GameSession onPlayersChange(PlayersChangeListener listener);
 

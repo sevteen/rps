@@ -15,7 +15,7 @@ public interface AbortablePlayer extends Player {
 
     /**
      * Releases threads blocked by {@link #makeMove(GameContext)} by receiving
-     * null move
+     * {@link MoveAbortedException}
      */
     void abort();
 }

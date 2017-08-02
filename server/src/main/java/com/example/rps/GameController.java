@@ -62,8 +62,7 @@ public class GameController {
 
     @MessageMapping("/{name}/leave")
     public void leaveGame(@DestinationVariable String name, String playerId) {
-        Game game = getGame(name);
-        leaveGame(game, playerId);
+        leaveGame(getGame(name), playerId);
     }
 
     @MessageMapping("/{name}/move/{playerId}")

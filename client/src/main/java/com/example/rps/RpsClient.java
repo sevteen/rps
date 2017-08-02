@@ -15,12 +15,12 @@ public interface RpsClient {
     void connect(String host, int port);
 
     /**
-     * Returns future of game names currently available on specific RPS server
+     * Returns list of game names currently available on specific RPS server
      */
     List<String> getCurrentGames();
 
     /**
-     * Start new game and return session
+     * Start new game
      *
      * @param name name of the game, must be unique
      * @throws IllegalArgumentException if name is not unique
@@ -36,7 +36,7 @@ public interface RpsClient {
     void joinBot(String gameName);
 
     /**
-     * Joins player into game
+     * Joins player into game and returns session
      *
      * @param gameName unique name of game
      * @param playerId unique ID of player

@@ -174,6 +174,7 @@ public class Cli {
     }
 
     private void exit() {
+        running = false;
         client.disconnect();
         System.exit(0);
     }

@@ -26,13 +26,6 @@ public class RoundResult {
         this.roundNumber = roundNumber;
     }
 
-    /**
-     * Creates new draw result
-     */
-    public static RoundResult draw(int round) {
-        return new RoundResult(new ArrayList<>(), round);
-    }
-
     public List<PlayerResult> getPlayerResults() {
         return playerResults;
     }

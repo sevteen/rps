@@ -83,10 +83,14 @@ public class WebSocketGameSession implements GameSession {
 
     @Override
     public void makeMove(String move) {
-        if (!availableMoves.contains(move)) {
+        if (!isMoveAvailable(move)) {
             throw new IllegalArgumentException("Move \"" + move + "\" is not available");
         }
         session.send(String.format("/game/%s/move/%s", gameName, playerId), move);
+    }
+
+    private boolean isMoveAvailable(String move) {
+        return availableMoves.contains(move);
     }
 
     @Override
